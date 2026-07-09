@@ -129,7 +129,7 @@ Tras cerrar la venta telefónica, se diligencia la solicitud con los datos de em
 ### Documentación API (OpenAPI)
 
 - **Fuente única de verdad del contrato HTTP**: `docs/openapi.yaml` (OpenAPI 3.0.3). Todo endpoint expuesto debe estar documentado ahí; si un endpoint no está en el OAS, se considera no publicado.
-- **Swagger UI en desarrollo**: `GET /docs` sirve la UI y `GET /docs/openapi.yaml` sirve la especificación. Las rutas se montan desde `src/infrastructure/docs/docs.routes.ts`.
+- **Swagger UI**: `GET /docs` sirve la UI y `GET /docs/openapi.yaml` la especificación (local y producción). Los Excel de `docs/*.xlsx` no se versionan ni despliegan.
 - **Sincronización obligatoria**: cualquier cambio en rutas, DTOs (schemas Zod), códigos de estado o formato de errores debe reflejarse en el OAS en el mismo cambio (mismo commit/PR), no después.
 
 ### Convenciones para documentar endpoints

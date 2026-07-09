@@ -70,7 +70,7 @@ Otras etapas del pipeline se irán exponiendo conforme se implementen.
 | Recurso | URL |
 |---------|-----|
 | Especificación OAS 3.0 | [`docs/openapi.yaml`](docs/openapi.yaml) |
-| Swagger UI (local) | http://localhost:3000/docs |
+| Swagger UI | http://localhost:3000/docs (también en producción) |
 
 Importa `docs/openapi.yaml` en Bruno, Postman, Insomnia o cualquier cliente compatible con OpenAPI.
 

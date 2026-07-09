@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Pipeline de venta de tarjetas de crédito con HITL — Banca Empresas",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
