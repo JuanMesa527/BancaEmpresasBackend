@@ -3,7 +3,7 @@ export type PipelineStage =
   | 'file_matching'
   | 'sales_call'
   | 'power_apps'
-  | 'activation_email'
+  | 'delivery_confirmation'
   | 'activation_follow_up'
   | 'completed'
   | 'rejected'
@@ -15,7 +15,7 @@ export const PIPELINE_ORDER: readonly PipelineStage[] = [
   'file_matching',
   'sales_call',
   'power_apps',
-  'activation_email',
+  'delivery_confirmation',
   'activation_follow_up',
   'completed',
 ] as const;
