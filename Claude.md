@@ -3,16 +3,36 @@
 Todo desarrollo en este proyecto debe adherirse estrictamente a los siguientes principios:
 
 ### Arquitectura y diseño
-- **Clean Architecture**: separar el dominio de negocio de la infraestructura (HTTP, storage) y de la capa de presentación. Los componentes no deben contener lógica de negocio ni llamadas directas a servicios HTTP.
-- **Clean Code**: código legible, nombres descriptivos, componentes pequeños con una sola responsabilidad, sin lógica compleja en templates.
+- **Feature-based architecture**: organizar el código por dominios de negocio (features), no por tipo técnico. Cada feature agrupa todo lo necesario para una capacidad del producto (controladores, casos de uso, entidades, repositorios y DTOs).
+- **Estructura del proyecto**:
+  ```
+  src/
+  ├── shared/                # Utilidades, excepciones, middlewares y tipos transversales
+  ├── infrastructure/        # Configuración de BD, clientes HTTP, colas, logging
+  └── features/
+      ├── accounts/
+      │   ├── domain/        # Entidades, value objects, interfaces de repositorio
+      │   ├── application/   # Casos de uso, DTOs, mappers
+      │   ├── infrastructure/# Implementación de repositorios, adaptadores externos
+      │   └── presentation/  # Controladores, validadores de entrada, rutas
+      └── transfers/
+          └── ...
+  ```
+- **Reglas de features**:
+  - Cada feature expone una API pública mínima (módulo o barrel); el resto del código es interno a la feature.
+  - Las features no importan código interno de otras features; la comunicación entre features se hace vía contratos en `shared/`, eventos de dominio o servicios de aplicación orquestados desde `core/`.
+  - `shared/` e `infrastructure/` no dependen de `features/`.
+  - Dentro de cada feature, respetar la dirección de dependencias: `presentation` → `application` → `domain`; `infrastructure` implementa interfaces definidas en `domain`.
+  - Los controladores no contienen lógica de negocio; delegan en casos de uso.
+- **Clean Architecture** (por feature): separar dominio, aplicación, infraestructura y presentación dentro de cada feature.
+- **Clean Code**: código legible, nombres descriptivos, clases y funciones pequeñas con una sola responsabilidad.
 - **SOLID**:
-  - **S** — Single Responsibility: cada componente/servicio/clase tiene una única razón para cambiar.
+  - **S** — Single Responsibility: cada clase/servicio tiene una única razón para cambiar.
   - **O** — Open/Closed: abierto para extensión (herencia, composición), cerrado para modificación.
   - **L** — Liskov Substitution: las implementaciones deben ser sustituibles por sus abstracciones.
   - **I** — Interface Segregation: interfaces pequeñas y específicas.
-  - **D** — Dependency Inversion: los componentes dependen de abstracciones (servicios inyectados), no de implementaciones concretas.
-- **Modularidad**: organizar el código en módulos Angular cohesivos (`CoreModule`, `SharedModule`, feature modules). Cada módulo debe ser autocontenido y tener responsabilidad clara.
-- **DRY**: evitar duplicación en templates, servicios y lógica de estado.
+  - **D** — Dependency Inversion: las capas superiores dependen de abstracciones (interfaces), no de implementaciones concretas.
+- **DRY**: evitar duplicación en validaciones, mappers y lógica de negocio; extraer a `shared/` solo cuando haya reutilización real entre features.
 - **YAGNI**: no añadir funcionalidad especulativa ni abstracciones prematuras.
 
 ### Ciberseguridad
