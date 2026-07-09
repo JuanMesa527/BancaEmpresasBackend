@@ -37,6 +37,15 @@ npm run dev
 
 Health: `GET /health`
 
+## API expuesta actualmente
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/health` | Health check del servicio |
+| `POST` | `/api/power-apps/submit` | Simulador de Power App con comprobación de campos |
+
+Otras etapas del pipeline se irán exponiendo conforme se implementen.
+
 ## Documentación API (OpenAPI)
 
 | Recurso | URL |
@@ -48,8 +57,18 @@ Importa `docs/openapi.yaml` en Bruno, Postman, Insomnia o cualquier cliente comp
 
 ### Power App (simulador)
 
-`POST /api/power-apps/submit` — valida solicitud de TC LATAM Business y retorna `APROBADO`, `DEVUELTO` o `RECHAZADO` con detalle de campos incorrectos (incluye detección de NIT/cédula invertidos).
-## Paso 1 — file-matching (cruce de fuentes → clientes finales)
+`POST /api/power-apps/submit` — comprobación integral de campos de la solicitud de TC LATAM Business y retorna `APROBADO`, `DEVUELTO` o `RECHAZADO` con detalle por campo (`issues[]`: código, mensaje, sugerencia).
+
+## Otras etapas del pipeline (en desarrollo)
+
+Las siguientes etapas existen en el código pero aún no están expuestas en la API pública:
+
+- **file-matching** — cruce de fuentes (Base Potencial × CEC × SG)
+- **sales-calls** — llamadas de venta (Fonema.ia)
+- **delivery-confirmation** — confirmación de entrega física (Resend)
+- **activation-follow-up** — seguimiento post-entrega (Fonema.ia)
+
+### file-matching (referencia interna)
 
 ### 1. Crear las tablas
 

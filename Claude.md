@@ -64,7 +64,7 @@ Dado que el sistema maneja datos de clientes y operaciones financieras de empres
 ### Producto
 
 - **Tarjeta de Crédito LATAM Business** (franquicia Visa), orientada a gastos corporativos, viajes, impuestos y compras nacionales/internacionales.
-- El cupo pertenece a la **empresa** (persona jurídica), pero la tarjeta se emite a nombre de una **persona natural** designada (representante o colaborador). Este es un error frecuente al diligenciar la Power App: intercambiar NIT y cédula.
+- El cupo pertenece a la **empresa** (persona jurídica), pero la tarjeta se emite a nombre de una **persona natural** designada (representante o colaborador).
 - Segmentos objetivo: Pyme Pequeña, Pyme Mediana, Empresarial 1 (y afines en las bases operativas).
 
 ### Fuentes de datos para viabilidad (`file-matching`)
@@ -96,32 +96,26 @@ file-matching (viabilidad: Base × CEC × SG)
 
 ### Power App (simulador en `power-apps`)
 
-Tras cerrar la venta telefónica, se diligencia la solicitud con:
+Tras cerrar la venta telefónica, se diligencia la solicitud con los datos de empresa, tarjetahabiente, cupo, entrega, Cámara de Comercio y producto (`TC_LATAM_BUSINESS`).
 
-- Datos de la **empresa** (NIT, razón social, segmento, ciudad, dirección)
-- Datos del **tarjetahabiente** PN (tipo/número documento, nombres, cargo, email, teléfono)
-- **Cupo** solicitado (≤ disponible CEC si se reporta)
-- **Entrega** (courier o comercial asignado, fecha de agendamiento — solo días hábiles)
-- **Certificado Cámara de Comercio** (PDF; NIT del certificado debe coincidir con la empresa)
-- **Producto**: `TC_LATAM_BUSINESS`
+**Endpoint expuesto:** `POST /api/power-apps/submit`
 
-**Endpoint:** `POST /api/power-apps/submit`
+**Comportamiento:** comprobación integral de campos — obligatorios, formatos, coherencia entre secciones y reglas de negocio. Cada problema se reporta en `issues[]` con `code`, `field`, `message`, `severity` y `suggestion` cuando aplica.
 
 **Decisiones de salida:**
 
 | Decisión | Significado |
 |----------|-------------|
 | `APROBADO` | Sin errores bloqueantes; genera radicado `GOPTC-YYYY-XXXXXXXX` para operaciones |
-| `DEVUELTO` | Errores corregibles (ej. NIT/cédula invertidos); el asesor debe corregir y reenviar |
+| `DEVUELTO` | Errores corregibles en uno o más campos; el asesor debe corregir y reenviar |
 | `RECHAZADO` | Errores bloqueantes (formato, cupo, producto, etc.) |
 
-**Validaciones críticas implementadas:**
-- Detección de **intercambio NIT ↔ cédula** entre empresa y tarjetahabiente
-- Formato de NIT empresarial vs documento de persona natural
-- Identificaciones duplicadas entre empresa y tarjetahabiente
-- Cupo solicitado > disponible CEC
-- Agendamiento en fin de semana o fecha pasada
-- Cámara de Comercio obligatoria (PDF) y coincidencia de NIT
+**Comprobaciones implementadas (no exhaustivo):**
+- Campos obligatorios y formatos (NIT, documento PN, email, teléfono, fechas)
+- Coherencia entre identificaciones de empresa y tarjetahabiente
+- Cupo solicitado vs disponible CEC
+- Agendamiento (días hábiles, no fechas pasadas)
+- Cámara de Comercio (presencia y coincidencia de NIT)
 - Producto y segmento de campaña
 
 ### Agendamiento y ANS (referencia operativa)
@@ -141,7 +135,7 @@ Tras cerrar la venta telefónica, se diligencia la solicitud con:
 ### Convenciones para documentar endpoints
 
 - **Schemas reutilizables**: definir request/response en `components/schemas` y referenciarlos con `$ref`; no duplicar schemas inline entre endpoints.
-- **Ejemplos realistas pero ficticios**: cada endpoint debe incluir al menos un ejemplo de request y de response por decisión relevante (ej. en `power-apps/submit`: `APROBADO`, `DEVUELTO` por NIT/cédula invertidos, `RECHAZADO`). Nunca usar datos reales de clientes (NITs, cédulas, nombres) en ejemplos; usar datos sintéticos.
+- **Ejemplos realistas pero ficticios**: cada endpoint debe incluir al menos un ejemplo de request y de response por decisión relevante (ej. en `power-apps/submit`: `APROBADO`, `DEVUELTO` con campos corregibles, `RECHAZADO`). Nunca usar datos reales de clientes (NITs, cédulas, nombres) en ejemplos; usar datos sintéticos.
 - **Errores documentados**: documentar los códigos de estado posibles (400 validación, 404, 500) con el schema de error estándar del proyecto. Los mensajes de error de los ejemplos no deben exponer detalles internos (stack traces, rutas, infraestructura).
 - **Códigos de validación**: los `ValidationIssueCode` del dominio (ej. `FIELD_SWAP_NIT_CEDULA`, `CUPO_EXCEDE_DISPONIBLE`) se documentan como enum en el OAS para que los consumidores puedan reaccionar programáticamente a cada código.
 - **Tags por feature**: agrupar endpoints con tags que coincidan con las features (`power-apps`, `sales-calls`, etc.) para que la UI refleje la arquitectura.

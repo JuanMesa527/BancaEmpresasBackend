@@ -6,25 +6,22 @@ info:
     API del pipeline de venta de Tarjeta de Crédito **LATAM Business** para Banca Empresas
     (Banco de Bogotá).
 
-    ## Flujo del pipeline
+    ## Endpoints expuestos actualmente
 
-    ```
-    file-matching → sales-calls → power-apps → activation-email → activation-follow-up
-    ```
+    | Método | Ruta | Descripción |
+    |--------|------|-------------|
+    | `GET` | `/health` | Health check del servicio |
+    | `POST` | `/api/power-apps/submit` | Simulador de Power App con comprobación de campos |
 
-    | Etapa | Descripción |
-    |-------|-------------|
-    | `file-matching` | Cruce Base Potencial × CEC × SG para viabilidad de llamada |
-    | `sales-calls` | Llamada de venta agentica (Fonema.ia) |
-    | `power-apps` | Simulador de solicitud Power App + validaciones |
-    | `activation-email` | Correo de activación (Resend) |
-    | `activation-follow-up` | Seguimiento de activación ~3 meses (Fonema.ia) |
+    Otras etapas del pipeline (`file-matching`, `sales-calls`, `delivery-confirmation`, etc.)
+    se documentarán aquí conforme se expongan.
 
-    ## Power App — regla de negocio clave
+    ## Power App — comprobación de campos
 
-    El cupo pertenece a la **empresa** (NIT), pero la tarjeta se emite a una **persona natural**
-    (cédula). Un error frecuente es invertir estos campos; el endpoint `/api/power-apps/submit`
-    detecta ese caso y retorna decisión `DEVUELTO`.
+    El simulador valida la solicitud completa: campos obligatorios, formatos, coherencia
+    entre secciones (empresa, tarjetahabiente, cupo, entrega, Cámara de Comercio, producto)
+    y reglas de negocio. Cada problema se reporta con código, campo, mensaje y sugerencia
+    de corrección cuando aplica.
 
   contact:
     name: Banca Empresas — Hackathon
@@ -37,19 +34,9 @@ servers:
 
 tags:
   - name: Health
-    description: Verificación de disponibilidad del servicio y features
-  - name: Pipeline
-    description: Orquestación del flujo de venta
-  - name: File Matching
-    description: Cruce de bases para viabilidad de llamada
-  - name: Sales Calls
-    description: Llamadas de venta (Fonema.ia)
+    description: Verificación de disponibilidad del servicio
   - name: Power Apps
     description: Simulador de solicitud TC LATAM Business
-  - name: Activation Email
-    description: Correos de activación (Resend)
-  - name: Activation Follow Up
-    description: Seguimiento post-entrega (Fonema.ia)
 
 paths:
   /health:
@@ -68,105 +55,38 @@ paths:
                 status: ok
                 service: banca-empresas-backend
 
-  /api/pipeline/health:
-    get:
-      tags: [Pipeline]
-      summary: Health del orquestador de pipeline
-      operationId: getPipelineHealth
-      responses:
-        '200':
-          description: Pipeline disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureHealthResponse'
-              example:
-                feature: pipeline
-                status: scaffold
-                flow:
-                  - file-matching
-                  - sales-calls
-                  - power-apps
-                  - activation-email
-                  - activation-follow-up
-
-  /api/file-matching/health:
-    get:
-      tags: [File Matching]
-      summary: Health de file-matching
-      operationId: getFileMatchingHealth
-      responses:
-        '200':
-          description: Feature disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureHealthResponse'
-              example:
-                feature: file-matching
-                status: scaffold
-                sources:
-                  - base_potencial
-                  - cec
-
-  /api/sales-calls/health:
-    get:
-      tags: [Sales Calls]
-      summary: Health de sales-calls
-      operationId: getSalesCallsHealth
-      responses:
-        '200':
-          description: Feature disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureHealthResponse'
-              example:
-                feature: sales-calls
-                status: scaffold
-                provider: fonema.ia
-
-  /api/power-apps/health:
-    get:
-      tags: [Power Apps]
-      summary: Health de power-apps
-      operationId: getPowerAppsHealth
-      responses:
-        '200':
-          description: Feature lista para recibir solicitudes
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PowerAppsHealthResponse'
-              example:
-                feature: power-apps
-                status: ready
-                endpoints:
-                  submit: POST /api/power-apps/submit
-
   /api/power-apps/submit:
     post:
       tags: [Power Apps]
       summary: Enviar solicitud de TC LATAM Business
       description: |
         Simula el diligenciamiento de la Power App tras una venta cerrada en call center.
+        Ejecuta comprobación integral de campos y reglas de negocio.
 
         **Decisiones posibles:**
 
         | Decisión | HTTP | Descripción |
         |----------|------|-------------|
         | `APROBADO` | 201 | Sin errores bloqueantes; genera radicado GOPTC |
-        | `DEVUELTO` | 422 | Errores corregibles (ej. NIT/cédula invertidos) |
+        | `DEVUELTO` | 422 | Errores corregibles en uno o más campos |
         | `RECHAZADO` | 422 | Errores bloqueantes de negocio |
         | `RECHAZADO` | 400 | Payload con formato inválido o campos faltantes |
 
-        **Códigos de validación frecuentes:**
+        **Códigos de validación (`issues[].code`):**
 
-        - `FIELD_SWAP_NIT_CEDULA` — NIT y cédula en campos invertidos
+        - `REQUIRED_FIELD` — Campo obligatorio ausente
+        - `INVALID_FORMAT` — Formato o tipo incorrecto
+        - `FIELD_SWAP_NIT_CEDULA` — Identificaciones en campos invertidos
         - `DUPLICATE_IDENTIFICATION` — Misma identificación en empresa y tarjetahabiente
         - `CUPO_EXCEDE_DISPONIBLE` — Cupo solicitado mayor al disponible CEC
+        - `CUPO_INVALIDO` — Cupo no válido
+        - `PRODUCTO_INVALIDO` — Producto no permitido en la campaña
         - `AGENDAMIENTO_FIN_DE_SEMANA` — Entrega agendada sábado o domingo
+        - `AGENDAMIENTO_PASADO` — Fecha de agendamiento en el pasado
+        - `CAMARA_COMERCIO_REQUERIDA` — Certificado de Cámara de Comercio faltante
         - `CAMARA_COMERCIO_NIT_NO_COINCIDE` — NIT del PDF no coincide con la empresa
+        - `SEGMENTO_NO_ELEGIBLE` — Segmento fuera de campaña
+        - `MISSING_TARJETAHABIENTE_DATA` — Datos incompletos del tarjetahabiente
       operationId: submitPowerApp
       requestBody:
         required: true
@@ -210,8 +130,8 @@ paths:
                     codigo: TC_LATAM_BUSINESS
                     franquicia: VISA
                   asesorId: asesor-call-001
-              nitCedulaInvertidos:
-                summary: NIT y cédula invertidos (error frecuente)
+              camposIncorrectos:
+                summary: Campos con errores de coherencia
                 value:
                   empresa:
                     nit: '10538625'
@@ -273,14 +193,14 @@ paths:
                 summary: La solicitud no cumple el formato esperado de la Power App.
                 siguientePaso: Revise los campos obligatorios y el formato de la solicitud.
         '422':
-          description: Validación de negocio fallida
+          description: Comprobación de campos o reglas de negocio fallida
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PowerAppSubmitResponse'
               examples:
                 devuelto:
-                  summary: NIT y cédula invertidos
+                  summary: Campos corregibles
                   value:
                     caseId: 258d3216-e3f1-4c22-a3d5-721519883568
                     decision: DEVUELTO
@@ -292,11 +212,11 @@ paths:
                         message: Parece que el NIT de la empresa y el documento del tarjetahabiente están invertidos.
                         severity: error
                         suggestion: 'Intercambie los valores: use 8000194370 como NIT de empresa y 10538625 como documento del tarjetahabiente.'
-                    summary: 'Solicitud devuelta: se detectaron 2 error(es) corregibles (posible intercambio de datos).'
+                    summary: 'Solicitud devuelta: se detectaron errores corregibles en los campos reportados.'
                     siguientePaso: Corrija los campos señalados y vuelva a enviar la solicitud.
                     submittedAt: '2026-07-09T17:00:03.165Z'
                 rechazado:
-                  summary: Cupo excede disponible CEC
+                  summary: Regla de negocio bloqueante
                   value:
                     caseId: 7f3a2b1c-4d5e-6f78-9012-3456789abcde
                     decision: RECHAZADO
@@ -308,7 +228,7 @@ paths:
                         message: El cupo solicitado supera el disponible reportado en CEC.
                         severity: error
                         suggestion: El cupo máximo disponible es 14.980.000.000.
-                    summary: 'Solicitud rechazada: se encontraron 1 error(es) que impiden continuar.'
+                    summary: 'Solicitud rechazada: se encontraron errores que impiden continuar.'
                     siguientePaso: Revise los errores reportados antes de reintentar.
                     submittedAt: '2026-07-09T17:00:03.165Z'
         '500':
@@ -317,40 +237,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/activation-email/health:
-    get:
-      tags: [Activation Email]
-      summary: Health de activation-email
-      operationId: getActivationEmailHealth
-      responses:
-        '200':
-          description: Feature disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureHealthResponse'
-              example:
-                feature: activation-email
-                status: scaffold
-                provider: resend
-
-  /api/activation-follow-up/health:
-    get:
-      tags: [Activation Follow Up]
-      summary: Health de activation-follow-up
-      operationId: getActivationFollowUpHealth
-      responses:
-        '200':
-          description: Feature disponible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureHealthResponse'
-              example:
-                feature: activation-follow-up
-                status: scaffold
-                provider: fonema.ia
 
 components:
   schemas:
@@ -364,43 +250,6 @@ components:
         service:
           type: string
           example: banca-empresas-backend
-
-    FeatureHealthResponse:
-      type: object
-      required: [feature, status]
-      properties:
-        feature:
-          type: string
-        status:
-          type: string
-          enum: [scaffold, ready]
-        flow:
-          type: array
-          items:
-            type: string
-        sources:
-          type: array
-          items:
-            type: string
-        provider:
-          type: string
-
-    PowerAppsHealthResponse:
-      type: object
-      required: [feature, status, endpoints]
-      properties:
-        feature:
-          type: string
-          example: power-apps
-        status:
-          type: string
-          enum: [ready]
-        endpoints:
-          type: object
-          properties:
-            submit:
-              type: string
-              example: POST /api/power-apps/submit
 
     PowerAppSubmitRequest:
       type: object
@@ -443,7 +292,7 @@ components:
       properties:
         nit:
           type: string
-          description: NIT de la persona jurídica (no la cédula del tarjetahabiente)
+          description: NIT de la persona jurídica
           example: '8000194370'
         razonSocial:
           type: string
@@ -476,7 +325,7 @@ components:
           description: Tipo de documento de la persona natural designada
         numeroDocumento:
           type: string
-          description: Cédula u otro documento PN (no el NIT de la empresa)
+          description: Documento de identidad de la persona natural
           example: '10538625'
         nombres:
           type: string
