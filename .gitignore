@@ -11,3 +11,6 @@ coverage/
 
 # Datos reales de clientes para el seed local — no versionar
 docs/*.xlsx
+
+# Herramientas de agentes locales
+.atl/
