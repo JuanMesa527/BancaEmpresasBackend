@@ -94,6 +94,17 @@ file-matching (viabilidad: Base × CEC × SG)
   → activation-follow-up (Fonema.ia — seguimiento ~3 meses por activación)
 ```
 
+### Sales Calls (Fonema.ia — llamada de venta)
+
+Etapa `sales-calls` del pipeline: entre `file-matching` (viabilidad) y `power-apps` (solicitud). Dispara una llamada saliente con un agente de voz (Fonema.ia) que verifica la identidad del representante (nombre, empresa, NIT) y ofrece la TC LATAM Business.
+
+- **Ubicación**: `src/features/sales-calls/` (`domain` / `application` / `infrastructure` / `presentation`).
+- **Integración Fonema**: `POST /v2/initiate-call` para disparar; el resultado (grabación, transcripción, análisis con `identidad_verificada`, `cliente_interesado`) llega asíncrono por **webhooks** (`call-update`, `end-of-call`, `end-of-session`) que se configuran en el dashboard del agente. Correlación por `session.id`.
+- **Grabación**: se sirve vía proxy autenticado (`GET /calls/{id}/recording`, con soporte `Range`) para no exponer la API key de Fonema al frontend.
+- **Persistencia**: `InMemoryCallRepository` (demo). Para serverless/producción debe migrarse a Supabase (misma interfaz `CallRepository`).
+- **Variables de entorno**: `FONEMA_API_URL`, `FONEMA_API_KEY`, `FONEMA_SALES_AGENT_ID`. `SEED_DEMO=true` carga una llamada de ejemplo.
+- **Endpoints**: base `/api/sales-calls` (ver OAS `docs/openapi.yaml`, tag *Sales Calls*).
+
 ### Power App (simulador en `power-apps`)
 
 Tras cerrar la venta telefónica, se diligencia la solicitud con los datos de empresa, tarjetahabiente, cupo, entrega, Cámara de Comercio y producto (`TC_LATAM_BUSINESS`).
