@@ -123,6 +123,10 @@ Capa de campaña construida **sobre** `initiate-call` de Fonema (que no trae bat
 
 Cuando una llamada cierra **calificada**, `BuildPowerAppPrefillUseCase` mapea su resultado (variables + `structuredData` del análisis + datos del lead) a un **prefill** con la forma de `SubmitPowerAppDto`. El contrato vive en `shared/contracts/power-app-prefill.ts` (`PowerAppPrefill`) para no acoplar features: `sales-calls` no importa internals de `power-apps`. El front consume el prefill, pre-diligencia el formulario y hace `POST /api/power-apps/submit`.
 
+**Auto-avance del pipeline (automático al calificar).** El webhook `end-of-call` (`HandleCallWebhookUseCase`), tras persistir el resultado y sincronizar el item de campaña, si la llamada **califica** (`isCallQualified`: identidad verificada + interesado) y está correlacionada con un caso del pipeline (`caseId`), avanza **solo** `pipeline_cases.stage → power_apps` vía el contrato `PipelineStageAdvancer` (mismo patrón que `delivery-confirmation`). No radica la solicitud (eso exige adjuntos como el PDF de Cámara de Comercio y datos de entrega que la llamada no produce): solo mueve el caso a la etapa power_apps y deja el `handoff` listo para que el asesor complete y envíe. Es *best-effort* — un fallo o un caso ya avanzado (el advancer no permite retroceder) no rompe el webhook.
+
+- **Correlación `caseId`**: se envía al disparar (`POST /calls` con `caseId`, o cada lead de `POST /batches` con `caseId`) y se persiste en `calls.case_id` / `call_batch_items.case_id` (migración `004_sales_call_case_link.sql`). Sin `caseId` no hay auto-avance (llamadas demo/manuales quedan igual: el handoff sigue disponible por `qualified`).
+
 ### Power App (simulador en `power-apps`)
 
 Tras cerrar la venta telefónica se diligencia la Power App. El simulador expone **un solo endpoint** que recibe **toda la solicitud en un JSON plano** — las pestañas del formulario (cliente, tarjeta, adjuntos, entrega) son solo organización del UI.

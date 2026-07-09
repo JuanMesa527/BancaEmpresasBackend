@@ -9,6 +9,8 @@ export interface Call {
   id: string;
   sessionId?: string;
   fonemaCallId?: string;
+  /** Caso del pipeline (pipeline_cases.id) al que pertenece esta llamada. */
+  caseId?: string;
   agentId: string;
   phoneNumber: string;
   customerName?: string;

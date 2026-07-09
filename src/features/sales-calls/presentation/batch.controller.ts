@@ -29,6 +29,7 @@ const pacingSchema = z
 
 const leadSchema = z.object({
   leadId: z.string().trim().min(1).max(120),
+  caseId: z.string().uuid().optional(),
   phoneNumber: z
     .string()
     .regex(/^\+\d{8,15}$/, 'phoneNumber debe estar en formato E.164, ej. +573001234567'),

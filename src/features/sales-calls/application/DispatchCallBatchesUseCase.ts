@@ -71,7 +71,7 @@ export class DispatchCallBatchesUseCase {
   private async dialOne(
     batch: CallBatch,
     itemId: string,
-    item: { phoneNumber: string; customerName?: string; customerEmail?: string; variables: Record<string, string> },
+    item: { phoneNumber: string; customerName?: string; customerEmail?: string; variables: Record<string, string>; caseId?: string },
   ): Promise<number> {
     try {
       const call = await this.initiateCallUseCase.execute({
@@ -79,6 +79,7 @@ export class DispatchCallBatchesUseCase {
         customerName: item.customerName,
         customerEmail: item.customerEmail,
         variables: { ...batch.defaultVariables, ...item.variables },
+        caseId: item.caseId,
       });
 
       // Item queda dialing con la correlación (sessionId/callId) para el webhook.

@@ -882,6 +882,12 @@ components:
       type: object
       required: [phoneNumber]
       properties:
+        caseId:
+          type: string
+          format: uuid
+          description: >-
+            Caso del pipeline (pipeline_cases.id). Si se envía, al cerrar la
+            llamada CALIFICADA el caso avanza automáticamente a la etapa power_apps.
         phoneNumber:
           type: string
           pattern: '^\+\d{8,15}$'
@@ -1158,6 +1164,12 @@ components:
           type: string
           description: Identificador del lead. Idempotencia por (batch, leadId).
           example: lead-demo-001
+        caseId:
+          type: string
+          format: uuid
+          description: >-
+            Caso del pipeline (pipeline_cases.id). Si se envía, al calificar la
+            llamada el caso avanza automáticamente a la etapa power_apps.
         phoneNumber:
           type: string
           description: Teléfono en formato E.164.

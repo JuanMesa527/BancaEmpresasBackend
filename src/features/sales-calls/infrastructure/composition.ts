@@ -1,3 +1,4 @@
+import { SupabasePipelineStageAdvancer } from '../../../core/pipeline/application/advance-stage.js';
 import { env } from '../../../infrastructure/config/env.js';
 import { getSupabaseClient } from '../../../infrastructure/database/supabase.js';
 import { BuildPowerAppPrefillUseCase } from '../application/BuildPowerAppPrefillUseCase.js';
@@ -72,7 +73,11 @@ export function getSalesCallsDeps(): SalesCallsDeps {
     getCall: new GetCallUseCase(callRepository),
     listCalls: new ListCallsUseCase(callRepository),
     getRecording: new GetCallRecordingUseCase(callRepository, fonemaGateway),
-    handleWebhook: new HandleCallWebhookUseCase(callRepository, batchRepository),
+    handleWebhook: new HandleCallWebhookUseCase(
+      callRepository,
+      batchRepository,
+      new SupabasePipelineStageAdvancer(db),
+    ),
     createBatch: new CreateCallBatchUseCase(batchRepository, env.fonema.salesAgentId),
     dispatchBatches: new DispatchCallBatchesUseCase(batchRepository, initiateCall),
     getBatch: new GetCallBatchUseCase(batchRepository),

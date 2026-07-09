@@ -49,6 +49,8 @@ export interface CallBatchItem {
   id: string;
   batchId: string;
   leadId: string;
+  /** Caso del pipeline (pipeline_cases.id) para avanzar a power_apps al calificar. */
+  caseId?: string;
   phoneNumber: string;
   customerName?: string;
   customerEmail?: string;
@@ -68,6 +70,8 @@ export interface CallBatchItem {
 /** Lead de entrada al crear un batch (una llamada a agendar). */
 export interface NewBatchLead {
   leadId: string;
+  /** Caso del pipeline; si se envía, habilita el auto-avance a power_apps. */
+  caseId?: string;
   phoneNumber: string;
   customerName?: string;
   customerEmail?: string;

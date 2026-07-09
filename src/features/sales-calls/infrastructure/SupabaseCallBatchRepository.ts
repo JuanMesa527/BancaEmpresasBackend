@@ -40,6 +40,7 @@ interface ItemRow {
   id: string;
   batch_id: string;
   lead_id: string;
+  case_id: string | null;
   phone_number: string;
   customer_name: string | null;
   customer_email: string | null;
@@ -83,6 +84,7 @@ function itemToDomain(row: ItemRow): CallBatchItem {
     id: row.id,
     batchId: row.batch_id,
     leadId: row.lead_id,
+    caseId: row.case_id ?? undefined,
     phoneNumber: row.phone_number,
     customerName: row.customer_name ?? undefined,
     customerEmail: row.customer_email ?? undefined,
@@ -149,6 +151,7 @@ export class SupabaseCallBatchRepository implements CallBatchRepository {
         leads.map((lead) => ({
           batch_id: batch.id,
           lead_id: lead.leadId,
+          case_id: lead.caseId ?? null,
           phone_number: lead.phoneNumber,
           customer_name: lead.customerName ?? null,
           customer_email: lead.customerEmail ?? null,

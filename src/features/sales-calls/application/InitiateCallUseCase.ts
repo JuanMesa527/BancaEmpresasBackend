@@ -10,6 +10,8 @@ export interface InitiateCallRequest {
   script?: string;
   variables?: Record<string, string>;
   delaySeconds?: number;
+  /** Caso del pipeline; se persiste en la llamada para el auto-avance a power_apps. */
+  caseId?: string;
 }
 
 export class InitiateCallUseCase {
@@ -38,6 +40,7 @@ export class InitiateCallUseCase {
     const call: Call = {
       id: randomUUID(),
       sessionId: result.sessionId,
+      caseId: request.caseId,
       agentId: this.defaultAgentId,
       phoneNumber: request.phoneNumber,
       customerName: request.customerName,

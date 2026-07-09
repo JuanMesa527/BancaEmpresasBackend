@@ -1,3 +1,4 @@
+import type { PipelineStageAdvancer } from '../../../shared/contracts/pipeline.js';
 import type { Call, CallStatus, TranscriptMessage } from '../domain/Call.js';
 import type { CallRepository } from '../domain/CallRepository.js';
 import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
@@ -48,6 +49,9 @@ export class HandleCallWebhookUseCase {
     // Opcional: si el call pertenece a una campaña, se sincroniza su item.
     // Ausente en configuraciones sin batch (p. ej. seed/demo in-memory).
     private readonly batchRepository?: CallBatchRepository,
+    // Opcional: avanza el caso a power_apps cuando la llamada califica.
+    // Ausente en seed/demo sin pipeline durable.
+    private readonly pipeline?: PipelineStageAdvancer,
   ) {}
 
   // Webhook "actualizaciones-de-llamada": cambios de estado en tiempo real.
@@ -103,6 +107,28 @@ export class HandleCallWebhookUseCase {
 
     await this.callRepository.save(call);
     await this.syncBatchItem(call, 'completed');
+    await this.advancePipelineIfQualified(call);
+  }
+
+  /**
+   * Handoff automático a la Power App: si la llamada cerró CALIFICADA (identidad
+   * verificada + interesado) y está correlacionada con un caso del pipeline,
+   * avanza pipeline_cases.stage -> 'power_apps' sin intervención manual. El front
+   * ya puede consumir GET /calls/{id}/handoff para pre-diligenciar la solicitud.
+   *
+   * Best-effort: un fallo aquí (o un caso ya avanzado, que el advancer rechaza por
+   * no retroceder) no debe romper el webhook — la grabación/resultado ya se guardó.
+   */
+  private async advancePipelineIfQualified(call: Call): Promise<void> {
+    if (!this.pipeline || !call.caseId) return;
+    if (!isCallQualified(call)) return;
+
+    try {
+      await this.pipeline.advance(call.caseId, 'power_apps');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown error';
+      console.warn(`sales-calls: auto-avance a power_apps omitido (caso ${call.caseId}) — ${message}`);
+    }
   }
 
   // Webhook "fin-de-sesion": se agotaron los reintentos hacia el cliente.

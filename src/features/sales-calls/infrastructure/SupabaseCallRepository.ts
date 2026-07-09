@@ -9,6 +9,7 @@ interface CallRow {
   id: string;
   session_id: string | null;
   fonema_call_id: string | null;
+  case_id: string | null;
   agent_id: string;
   phone_number: string;
   customer_name: string | null;
@@ -35,6 +36,7 @@ function toDomain(row: CallRow): Call {
     id: row.id,
     sessionId: row.session_id ?? undefined,
     fonemaCallId: row.fonema_call_id ?? undefined,
+    caseId: row.case_id ?? undefined,
     agentId: row.agent_id,
     phoneNumber: row.phone_number,
     customerName: row.customer_name ?? undefined,
@@ -65,6 +67,7 @@ function toRow(call: Call): Record<string, unknown> {
     id: call.id,
     session_id: call.sessionId ?? null,
     fonema_call_id: call.fonemaCallId ?? null,
+    case_id: call.caseId ?? null,
     agent_id: call.agentId,
     phone_number: call.phoneNumber,
     customer_name: call.customerName ?? null,
