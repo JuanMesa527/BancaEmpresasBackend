@@ -4,11 +4,12 @@ import helmet from 'helmet';
 import { errorHandler } from './shared/middlewares/error-handler.js';
 import { notFoundHandler } from './shared/middlewares/not-found.js';
 import { registerFeatureRoutes } from './routes.js';
+import { docsRouter } from './infrastructure/docs/docs.routes.js';
 
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors());
   app.use(express.json({ limit: '2mb' }));
 
@@ -16,6 +17,7 @@ export function createApp() {
     res.json({ status: 'ok', service: 'banca-empresas-backend' });
   });
 
+  app.use('/docs', docsRouter);
   registerFeatureRoutes(app);
 
   app.use(notFoundHandler);

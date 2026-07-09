@@ -1,0 +1,671 @@
+openapi: 3.0.3
+info:
+  title: Banca Empresas API
+  version: 0.1.0
+  description: |
+    API del pipeline de venta de Tarjeta de Crédito **LATAM Business** para Banca Empresas
+    (Banco de Bogotá).
+
+    ## Flujo del pipeline
+
+    ```
+    file-matching → sales-calls → power-apps → activation-email → activation-follow-up
+    ```
+
+    | Etapa | Descripción |
+    |-------|-------------|
+    | `file-matching` | Cruce Base Potencial × CEC × SG para viabilidad de llamada |
+    | `sales-calls` | Llamada de venta agentica (Fonema.ia) |
+    | `power-apps` | Simulador de solicitud Power App + validaciones |
+    | `activation-email` | Correo de activación (Resend) |
+    | `activation-follow-up` | Seguimiento de activación ~3 meses (Fonema.ia) |
+
+    ## Power App — regla de negocio clave
+
+    El cupo pertenece a la **empresa** (NIT), pero la tarjeta se emite a una **persona natural**
+    (cédula). Un error frecuente es invertir estos campos; el endpoint `/api/power-apps/submit`
+    detecta ese caso y retorna decisión `DEVUELTO`.
+
+  contact:
+    name: Banca Empresas — Hackathon
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+
+tags:
+  - name: Health
+    description: Verificación de disponibilidad del servicio y features
+  - name: Pipeline
+    description: Orquestación del flujo de venta
+  - name: File Matching
+    description: Cruce de bases para viabilidad de llamada
+  - name: Sales Calls
+    description: Llamadas de venta (Fonema.ia)
+  - name: Power Apps
+    description: Simulador de solicitud TC LATAM Business
+  - name: Activation Email
+    description: Correos de activación (Resend)
+  - name: Activation Follow Up
+    description: Seguimiento post-entrega (Fonema.ia)
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check global
+      operationId: getHealth
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalHealthResponse'
+              example:
+                status: ok
+                service: banca-empresas-backend
+
+  /api/pipeline/health:
+    get:
+      tags: [Pipeline]
+      summary: Health del orquestador de pipeline
+      operationId: getPipelineHealth
+      responses:
+        '200':
+          description: Pipeline disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureHealthResponse'
+              example:
+                feature: pipeline
+                status: scaffold
+                flow:
+                  - file-matching
+                  - sales-calls
+                  - power-apps
+                  - activation-email
+                  - activation-follow-up
+
+  /api/file-matching/health:
+    get:
+      tags: [File Matching]
+      summary: Health de file-matching
+      operationId: getFileMatchingHealth
+      responses:
+        '200':
+          description: Feature disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureHealthResponse'
+              example:
+                feature: file-matching
+                status: scaffold
+                sources:
+                  - base_potencial
+                  - cec
+
+  /api/sales-calls/health:
+    get:
+      tags: [Sales Calls]
+      summary: Health de sales-calls
+      operationId: getSalesCallsHealth
+      responses:
+        '200':
+          description: Feature disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureHealthResponse'
+              example:
+                feature: sales-calls
+                status: scaffold
+                provider: fonema.ia
+
+  /api/power-apps/health:
+    get:
+      tags: [Power Apps]
+      summary: Health de power-apps
+      operationId: getPowerAppsHealth
+      responses:
+        '200':
+          description: Feature lista para recibir solicitudes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerAppsHealthResponse'
+              example:
+                feature: power-apps
+                status: ready
+                endpoints:
+                  submit: POST /api/power-apps/submit
+
+  /api/power-apps/submit:
+    post:
+      tags: [Power Apps]
+      summary: Enviar solicitud de TC LATAM Business
+      description: |
+        Simula el diligenciamiento de la Power App tras una venta cerrada en call center.
+
+        **Decisiones posibles:**
+
+        | Decisión | HTTP | Descripción |
+        |----------|------|-------------|
+        | `APROBADO` | 201 | Sin errores bloqueantes; genera radicado GOPTC |
+        | `DEVUELTO` | 422 | Errores corregibles (ej. NIT/cédula invertidos) |
+        | `RECHAZADO` | 422 | Errores bloqueantes de negocio |
+        | `RECHAZADO` | 400 | Payload con formato inválido o campos faltantes |
+
+        **Códigos de validación frecuentes:**
+
+        - `FIELD_SWAP_NIT_CEDULA` — NIT y cédula en campos invertidos
+        - `DUPLICATE_IDENTIFICATION` — Misma identificación en empresa y tarjetahabiente
+        - `CUPO_EXCEDE_DISPONIBLE` — Cupo solicitado mayor al disponible CEC
+        - `AGENDAMIENTO_FIN_DE_SEMANA` — Entrega agendada sábado o domingo
+        - `CAMARA_COMERCIO_NIT_NO_COINCIDE` — NIT del PDF no coincide con la empresa
+      operationId: submitPowerApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerAppSubmitRequest'
+            examples:
+              aprobado:
+                summary: Solicitud válida
+                value:
+                  leadId: lead-demo-001
+                  campana: Campaña Venta TC PJ Call Center
+                  empresa:
+                    nit: '8000194370'
+                    razonSocial: CORRUGADOS DEL DARIEN S.A.S
+                    segmento: Corporativo
+                    ciudad: Bogotá
+                    direccion: Calle 100 # 15-20
+                  tarjetahabiente:
+                    tipoDocumento: CC
+                    numeroDocumento: '10538625'
+                    nombres: JORGE
+                    apellidos: ROSAS
+                    cargo: Gerente General
+                    email: jorge.rosas@empresa.com
+                    telefono: '3001234567'
+                  cupo:
+                    solicitado: 1000000000
+                    disponibleCec: 14980000000
+                  entrega:
+                    tipo: comercial
+                    ciudad: Bogotá
+                    direccion: Calle 100 # 15-20
+                    fechaAgendamiento: '2026-07-15'
+                  camaraComercio:
+                    archivoNombre: camara_8000194370.pdf
+                    nitCertificado: '8000194370'
+                    fechaExpedicion: '2026-01-15'
+                  producto:
+                    codigo: TC_LATAM_BUSINESS
+                    franquicia: VISA
+                  asesorId: asesor-call-001
+              nitCedulaInvertidos:
+                summary: NIT y cédula invertidos (error frecuente)
+                value:
+                  empresa:
+                    nit: '10538625'
+                    razonSocial: CORRUGADOS DEL DARIEN S.A.S
+                    segmento: Corporativo
+                    ciudad: Bogotá
+                    direccion: Calle 100 # 15-20
+                  tarjetahabiente:
+                    tipoDocumento: CC
+                    numeroDocumento: '8000194370'
+                    nombres: JORGE
+                    apellidos: ROSAS
+                    cargo: Gerente General
+                    email: jorge.rosas@empresa.com
+                    telefono: '3001234567'
+                  cupo:
+                    solicitado: 1000000000
+                  entrega:
+                    tipo: comercial
+                    ciudad: Bogotá
+                    direccion: Calle 100 # 15-20
+                    fechaAgendamiento: '2026-07-15'
+                  camaraComercio:
+                    archivoNombre: camara.pdf
+                  producto:
+                    codigo: TC_LATAM_BUSINESS
+                    franquicia: VISA
+      responses:
+        '201':
+          description: Solicitud aprobada — operaciones puede iniciar realce
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerAppSubmitResponse'
+              example:
+                caseId: ad827940-aa07-4f27-8086-539b03a15c9c
+                decision: APROBADO
+                valid: true
+                radicado: GOPTC-2026-B678F1A5
+                issues: []
+                summary: Solicitud aprobada. Operaciones puede iniciar realce y entrega de la tarjeta.
+                siguientePaso: Operaciones procesará realce, fabricación y envío. El gerente comercial hará entrega del plástico.
+                submittedAt: '2026-07-09T17:00:03.141Z'
+        '400':
+          description: Payload inválido — campos obligatorios o formato incorrecto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerAppValidationErrorResponse'
+              example:
+                decision: RECHAZADO
+                valid: false
+                radicado: null
+                issues:
+                  - code: REQUIRED_FIELD
+                    field: empresa.razonSocial
+                    message: La razón social es obligatoria
+                    severity: error
+                summary: La solicitud no cumple el formato esperado de la Power App.
+                siguientePaso: Revise los campos obligatorios y el formato de la solicitud.
+        '422':
+          description: Validación de negocio fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerAppSubmitResponse'
+              examples:
+                devuelto:
+                  summary: NIT y cédula invertidos
+                  value:
+                    caseId: 258d3216-e3f1-4c22-a3d5-721519883568
+                    decision: DEVUELTO
+                    valid: false
+                    radicado: null
+                    issues:
+                      - code: FIELD_SWAP_NIT_CEDULA
+                        field: empresa.nit
+                        message: Parece que el NIT de la empresa y el documento del tarjetahabiente están invertidos.
+                        severity: error
+                        suggestion: 'Intercambie los valores: use 8000194370 como NIT de empresa y 10538625 como documento del tarjetahabiente.'
+                    summary: 'Solicitud devuelta: se detectaron 2 error(es) corregibles (posible intercambio de datos).'
+                    siguientePaso: Corrija los campos señalados y vuelva a enviar la solicitud.
+                    submittedAt: '2026-07-09T17:00:03.165Z'
+                rechazado:
+                  summary: Cupo excede disponible CEC
+                  value:
+                    caseId: 7f3a2b1c-4d5e-6f78-9012-3456789abcde
+                    decision: RECHAZADO
+                    valid: false
+                    radicado: null
+                    issues:
+                      - code: CUPO_EXCEDE_DISPONIBLE
+                        field: cupo.solicitado
+                        message: El cupo solicitado supera el disponible reportado en CEC.
+                        severity: error
+                        suggestion: El cupo máximo disponible es 14.980.000.000.
+                    summary: 'Solicitud rechazada: se encontraron 1 error(es) que impiden continuar.'
+                    siguientePaso: Revise los errores reportados antes de reintentar.
+                    submittedAt: '2026-07-09T17:00:03.165Z'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/activation-email/health:
+    get:
+      tags: [Activation Email]
+      summary: Health de activation-email
+      operationId: getActivationEmailHealth
+      responses:
+        '200':
+          description: Feature disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureHealthResponse'
+              example:
+                feature: activation-email
+                status: scaffold
+                provider: resend
+
+  /api/activation-follow-up/health:
+    get:
+      tags: [Activation Follow Up]
+      summary: Health de activation-follow-up
+      operationId: getActivationFollowUpHealth
+      responses:
+        '200':
+          description: Feature disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureHealthResponse'
+              example:
+                feature: activation-follow-up
+                status: scaffold
+                provider: fonema.ia
+
+components:
+  schemas:
+    GlobalHealthResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        service:
+          type: string
+          example: banca-empresas-backend
+
+    FeatureHealthResponse:
+      type: object
+      required: [feature, status]
+      properties:
+        feature:
+          type: string
+        status:
+          type: string
+          enum: [scaffold, ready]
+        flow:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            type: string
+        provider:
+          type: string
+
+    PowerAppsHealthResponse:
+      type: object
+      required: [feature, status, endpoints]
+      properties:
+        feature:
+          type: string
+          example: power-apps
+        status:
+          type: string
+          enum: [ready]
+        endpoints:
+          type: object
+          properties:
+            submit:
+              type: string
+              example: POST /api/power-apps/submit
+
+    PowerAppSubmitRequest:
+      type: object
+      required:
+        - empresa
+        - tarjetahabiente
+        - cupo
+        - entrega
+        - camaraComercio
+        - producto
+      properties:
+        leadId:
+          type: string
+          description: Identificador interno del lead en el pipeline
+          example: lead-demo-001
+        campana:
+          type: string
+          description: Nombre de la campaña comercial
+          example: Campaña Venta TC PJ Call Center
+        empresa:
+          $ref: '#/components/schemas/Empresa'
+        tarjetahabiente:
+          $ref: '#/components/schemas/Tarjetahabiente'
+        cupo:
+          $ref: '#/components/schemas/Cupo'
+        entrega:
+          $ref: '#/components/schemas/Entrega'
+        camaraComercio:
+          $ref: '#/components/schemas/CamaraComercio'
+        producto:
+          $ref: '#/components/schemas/Producto'
+        asesorId:
+          type: string
+          description: Identificador del asesor del call center
+          example: asesor-call-001
+
+    Empresa:
+      type: object
+      required: [nit, razonSocial, segmento, ciudad, direccion]
+      properties:
+        nit:
+          type: string
+          description: NIT de la persona jurídica (no la cédula del tarjetahabiente)
+          example: '8000194370'
+        razonSocial:
+          type: string
+          example: CORRUGADOS DEL DARIEN S.A.S
+        segmento:
+          type: string
+          description: 'Segmento Banca Empresas: Pyme Pequeña, Pyme Mediana, Empresarial 1, Corporativo, etc.'
+          example: Corporativo
+        ciudad:
+          type: string
+          example: Bogotá
+        direccion:
+          type: string
+          example: 'Calle 100 # 15-20'
+
+    Tarjetahabiente:
+      type: object
+      required:
+        - tipoDocumento
+        - numeroDocumento
+        - nombres
+        - apellidos
+        - cargo
+        - email
+        - telefono
+      properties:
+        tipoDocumento:
+          type: string
+          enum: [CC, CE, PA, TI]
+          description: Tipo de documento de la persona natural designada
+        numeroDocumento:
+          type: string
+          description: Cédula u otro documento PN (no el NIT de la empresa)
+          example: '10538625'
+        nombres:
+          type: string
+          example: JORGE
+        apellidos:
+          type: string
+          example: ROSAS
+        cargo:
+          type: string
+          example: Gerente General
+        email:
+          type: string
+          format: email
+          example: jorge.rosas@empresa.com
+        telefono:
+          type: string
+          description: Celular colombiano (10 dígitos, inicia en 3)
+          example: '3001234567'
+
+    Cupo:
+      type: object
+      required: [solicitado]
+      properties:
+        solicitado:
+          type: number
+          format: double
+          minimum: 0
+          exclusiveMinimum: true
+          description: Cupo de crédito solicitado para la tarjeta
+          example: 1000000000
+        disponibleCec:
+          type: number
+          format: double
+          minimum: 0
+          description: Cupo disponible reportado en CEC (opcional, usado para validación)
+          example: 14980000000
+
+    Entrega:
+      type: object
+      required: [tipo, ciudad, direccion, fechaAgendamiento]
+      properties:
+        tipo:
+          type: string
+          enum: [courier, comercial]
+          description: courier = envío certificado; comercial = entrega por gerente asignado
+        ciudad:
+          type: string
+          example: Bogotá
+        direccion:
+          type: string
+          example: 'Calle 100 # 15-20'
+        fechaAgendamiento:
+          type: string
+          format: date
+          description: Solo días hábiles (lunes a viernes)
+          example: '2026-07-15'
+
+    CamaraComercio:
+      type: object
+      required: [archivoNombre]
+      properties:
+        archivoNombre:
+          type: string
+          description: Nombre del archivo PDF del certificado de Cámara de Comercio
+          example: camara_8000194370.pdf
+        nitCertificado:
+          type: string
+          description: NIT extraído del certificado; debe coincidir con empresa.nit
+          example: '8000194370'
+        fechaExpedicion:
+          type: string
+          format: date
+          example: '2026-01-15'
+
+    Producto:
+      type: object
+      required: [codigo, franquicia]
+      properties:
+        codigo:
+          type: string
+          enum: [TC_LATAM_BUSINESS]
+          example: TC_LATAM_BUSINESS
+        franquicia:
+          type: string
+          example: VISA
+
+    ValidationIssue:
+      type: object
+      required: [code, field, message, severity]
+      properties:
+        code:
+          type: string
+          enum:
+            - REQUIRED_FIELD
+            - INVALID_FORMAT
+            - FIELD_SWAP_NIT_CEDULA
+            - DUPLICATE_IDENTIFICATION
+            - CUPO_EXCEDE_DISPONIBLE
+            - CUPO_INVALIDO
+            - PRODUCTO_INVALIDO
+            - AGENDAMIENTO_FIN_DE_SEMANA
+            - AGENDAMIENTO_PASADO
+            - CAMARA_COMERCIO_REQUERIDA
+            - CAMARA_COMERCIO_NIT_NO_COINCIDE
+            - SEGMENTO_NO_ELEGIBLE
+            - MISSING_TARJETAHABIENTE_DATA
+        field:
+          type: string
+          description: Ruta del campo con error (notación punto)
+          example: empresa.nit
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [error, warning]
+        suggestion:
+          type: string
+          description: Acción recomendada para corregir el error
+
+    PowerAppSubmitResponse:
+      type: object
+      required:
+        - caseId
+        - decision
+        - valid
+        - radicado
+        - issues
+        - summary
+        - siguientePaso
+        - submittedAt
+      properties:
+        caseId:
+          type: string
+          format: uuid
+        decision:
+          type: string
+          enum: [APROBADO, RECHAZADO, DEVUELTO]
+        valid:
+          type: boolean
+        radicado:
+          type: string
+          nullable: true
+          description: 'Radicado GOPTC generado solo si decision = APROBADO. Formato: GOPTC-YYYY-XXXXXXXX'
+          example: GOPTC-2026-B678F1A5
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationIssue'
+        summary:
+          type: string
+        siguientePaso:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+
+    PowerAppValidationErrorResponse:
+      type: object
+      required: [decision, valid, radicado, issues, summary, siguientePaso]
+      properties:
+        decision:
+          type: string
+          enum: [RECHAZADO]
+        valid:
+          type: boolean
+          example: false
+        radicado:
+          type: 'null'
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationIssue'
+        summary:
+          type: string
+        siguientePaso:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: INTERNAL_ERROR
+            message:
+              type: string
+              example: An unexpected error occurred

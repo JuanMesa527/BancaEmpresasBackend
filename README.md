@@ -28,3 +28,16 @@ npm run dev
 ```
 
 Health: `GET /health`
+
+## Documentación API (OpenAPI)
+
+| Recurso | URL |
+|---------|-----|
+| Especificación OAS 3.0 | [`docs/openapi.yaml`](docs/openapi.yaml) |
+| Swagger UI (local) | http://localhost:3000/docs |
+
+Importa `docs/openapi.yaml` en Bruno, Postman, Insomnia o cualquier cliente compatible con OpenAPI.
+
+### Power App (simulador)
+
+`POST /api/power-apps/submit` — valida solicitud de TC LATAM Business y retorna `APROBADO`, `DEVUELTO` o `RECHAZADO` con detalle de campos incorrectos (incluye detección de NIT/cédula invertidos).

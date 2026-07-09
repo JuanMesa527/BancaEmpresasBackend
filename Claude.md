@@ -58,3 +58,97 @@ Dado que el sistema maneja datos de clientes y operaciones financieras de empres
 - **Control de acceso a datos**: exponer en APIs y UI solo los campos que el rol del usuario necesita ver; evitar sobre-exposición de datos en respuestas (no devolver objetos completos "por comodidad").
 - **Trazabilidad**: los cambios sobre datos sensibles (creación, modificación, eliminación) deben quedar auditados con usuario y timestamp cuando la operación lo amerite.
 - **Cumplimiento normativo**: seguir lineamientos de protección de datos aplicables al sector financiero (habeas data / normativa local de protección de datos personales); no implementar mecanismos que dificulten el derecho del titular a la consulta, corrección o eliminación de sus datos.
+
+## Contexto de negocio — Campaña TC LATAM Business
+
+### Producto
+
+- **Tarjeta de Crédito LATAM Business** (franquicia Visa), orientada a gastos corporativos, viajes, impuestos y compras nacionales/internacionales.
+- El cupo pertenece a la **empresa** (persona jurídica), pero la tarjeta se emite a nombre de una **persona natural** designada (representante o colaborador). Este es un error frecuente al diligenciar la Power App: intercambiar NIT y cédula.
+- Segmentos objetivo: Pyme Pequeña, Pyme Mediana, Empresarial 1 (y afines en las bases operativas).
+
+### Fuentes de datos para viabilidad (`file-matching`)
+
+| Archivo | Rol | Llave principal |
+|---------|-----|-----------------|
+| Base Potencial VP Banca Empresas | Universo de empresas | `Cliente_Id` (NIT) |
+| CEC | Cupos aprobados/disponibles | `NUME IDEN` (cédula PN / representante) |
+| Clientes potenciales para grabar SG | Base refinada con valor sugerido | `IDENTIFICACION` (NIT) |
+
+**Filtros típicos de elegibilidad para llamada de venta:**
+- Base Potencial: `Producto TC = SIN TC` y `Cliente_Gestionable = Gestionable`
+- SG: estado activo y valor sugerido > 0
+- CEC: cupo disponible > 0 y vigencia del proyecto crediticio vigente
+
+> El cruce NIT (empresa) ↔ cédula (CEC) no es directo; depende del representante o tarjetahabiente vinculado a la empresa.
+
+### Flujo operativo end-to-end
+
+```
+file-matching (viabilidad: Base × CEC × SG)
+  → sales-calls (Fonema.ia — llamada de venta)
+  → power-apps (solicitud + validaciones + Cámara de Comercio)
+  → operaciones (realce GOPTC, fabricación, envío)
+  → entrega por gerente comercial
+  → activation-email (Resend)
+  → activation-follow-up (Fonema.ia — seguimiento ~3 meses por activación)
+```
+
+### Power App (simulador en `power-apps`)
+
+Tras cerrar la venta telefónica, se diligencia la solicitud con:
+
+- Datos de la **empresa** (NIT, razón social, segmento, ciudad, dirección)
+- Datos del **tarjetahabiente** PN (tipo/número documento, nombres, cargo, email, teléfono)
+- **Cupo** solicitado (≤ disponible CEC si se reporta)
+- **Entrega** (courier o comercial asignado, fecha de agendamiento — solo días hábiles)
+- **Certificado Cámara de Comercio** (PDF; NIT del certificado debe coincidir con la empresa)
+- **Producto**: `TC_LATAM_BUSINESS`
+
+**Endpoint:** `POST /api/power-apps/submit`
+
+**Decisiones de salida:**
+
+| Decisión | Significado |
+|----------|-------------|
+| `APROBADO` | Sin errores bloqueantes; genera radicado `GOPTC-YYYY-XXXXXXXX` para operaciones |
+| `DEVUELTO` | Errores corregibles (ej. NIT/cédula invertidos); el asesor debe corregir y reenviar |
+| `RECHAZADO` | Errores bloqueantes (formato, cupo, producto, etc.) |
+
+**Validaciones críticas implementadas:**
+- Detección de **intercambio NIT ↔ cédula** entre empresa y tarjetahabiente
+- Formato de NIT empresarial vs documento de persona natural
+- Identificaciones duplicadas entre empresa y tarjetahabiente
+- Cupo solicitado > disponible CEC
+- Agendamiento en fin de semana o fecha pasada
+- Cámara de Comercio obligatoria (PDF) y coincidencia de NIT
+- Producto y segmento de campaña
+
+### Agendamiento y ANS (referencia operativa)
+
+- Bogotá: ~3 días hábiles; ciudades principales: 5–7 días hábiles; solo lunes a viernes.
+- Realce/fabricación GOPTC: ~5 días hábiles adicionales.
+- Seguimiento post-entrega: verificar activación real de la tarjeta durante ~3 meses.
+
+## Documentación
+
+### Documentación API (OpenAPI)
+
+- **Fuente única de verdad del contrato HTTP**: `docs/openapi.yaml` (OpenAPI 3.0.3). Todo endpoint expuesto debe estar documentado ahí; si un endpoint no está en el OAS, se considera no publicado.
+- **Swagger UI en desarrollo**: `GET /docs` sirve la UI y `GET /docs/openapi.yaml` sirve la especificación. Las rutas se montan desde `src/infrastructure/docs/docs.routes.ts`.
+- **Sincronización obligatoria**: cualquier cambio en rutas, DTOs (schemas Zod), códigos de estado o formato de errores debe reflejarse en el OAS en el mismo cambio (mismo commit/PR), no después.
+
+### Convenciones para documentar endpoints
+
+- **Schemas reutilizables**: definir request/response en `components/schemas` y referenciarlos con `$ref`; no duplicar schemas inline entre endpoints.
+- **Ejemplos realistas pero ficticios**: cada endpoint debe incluir al menos un ejemplo de request y de response por decisión relevante (ej. en `power-apps/submit`: `APROBADO`, `DEVUELTO` por NIT/cédula invertidos, `RECHAZADO`). Nunca usar datos reales de clientes (NITs, cédulas, nombres) en ejemplos; usar datos sintéticos.
+- **Errores documentados**: documentar los códigos de estado posibles (400 validación, 404, 500) con el schema de error estándar del proyecto. Los mensajes de error de los ejemplos no deben exponer detalles internos (stack traces, rutas, infraestructura).
+- **Códigos de validación**: los `ValidationIssueCode` del dominio (ej. `FIELD_SWAP_NIT_CEDULA`, `CUPO_EXCEDE_DISPONIBLE`) se documentan como enum en el OAS para que los consumidores puedan reaccionar programáticamente a cada código.
+- **Tags por feature**: agrupar endpoints con tags que coincidan con las features (`power-apps`, `sales-calls`, etc.) para que la UI refleje la arquitectura.
+
+### Documentación de código y proyecto
+
+- **README.md**: mantener actualizado el stack, el flujo de la campaña, cómo levantar el servicio local (`npm run dev`) y cómo acceder a la documentación (`/docs`).
+- **CLAUDE.md (este archivo)**: registrar contexto de negocio, decisiones de arquitectura y reglas transversales; es la referencia para cualquier agente o desarrollador que entre al proyecto.
+- **Comentarios en código**: solo para explicar intención no obvia o reglas de negocio (ej. por qué un NIT de 9 dígitos que inicia en 8/9 se trata como empresa); no comentar lo evidente.
+- **Nuevas features**: al crear una feature nueva, documentar en el OAS sus endpoints y añadir a este archivo el contexto de negocio mínimo (qué etapa del pipeline cubre y con qué se integra).
