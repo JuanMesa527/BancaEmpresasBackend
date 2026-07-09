@@ -37,6 +37,25 @@ npm run dev
 
 Health: `GET /health`
 
+## Despliegue
+
+### Supabase
+
+1. Crea un proyecto en [supabase.com](https://supabase.com).
+2. Aplica el esquema (elige una opción):
+   - **CLI**: `supabase link --project-ref <ref>` y luego `supabase db push`
+   - **SQL Editor**: ejecuta [`supabase/schema.sql`](supabase/schema.sql) de una vez
+3. Copia `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` al entorno de Vercel.
+
+### Vercel
+
+1. Importa el repo en [vercel.com](https://vercel.com) (Framework: **Other**, Build Command: vacío).
+2. Configura las variables de [`.env.example`](.env.example) en **Settings → Environment Variables**.
+3. En producción usa `TIME_COMPRESSION_DAY_MS=86400000` (1 día real).
+4. Deploy. El cron de `vercel.json` procesa correos de delivery-confirmation cada 5 min (requiere plan Pro para frecuencia menor a 1/día).
+
+Health en producción: `GET https://<tu-app>.vercel.app/health`
+
 ## API expuesta actualmente
 
 | Método | Ruta | Descripción |
@@ -72,10 +91,7 @@ Las siguientes etapas existen en el código pero aún no están expuestas en la 
 
 ### 1. Crear las tablas
 
-Ejecutar [`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor de Supabase (una sola vez).
-Crea las 3 tablas fuente (`base_potencial`, `cec`, `clientes_potenciales_grabar`) y las 2 tablas
-resultado (`clientes_finales`, `clientes_finales_sin_pagare`), con RLS habilitado sin políticas
-(solo el backend accede, vía service role).
+Ejecutar [`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor de Supabase, o `supabase db push` si usas la CLI.
 
 ### 2. Precargar las fuentes desde Excel
 
