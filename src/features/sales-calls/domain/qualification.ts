@@ -4,7 +4,12 @@ function asBool(value: unknown): boolean {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
     const v = value.trim().toLowerCase();
-    return v === 'true' || v === 'si' || v === 'sí' || v === 'yes' || v === '1';
+    if (v === 'true' || v === 'si' || v === 'sí' || v === 'yes' || v === '1' || v === 'verdadero') {
+      return true;
+    }
+    if (v === 'false' || v === 'no' || v === '0' || v === 'falso') {
+      return false;
+    }
   }
   return false;
 }
