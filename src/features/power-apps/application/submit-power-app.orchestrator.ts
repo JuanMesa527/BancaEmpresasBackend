@@ -20,8 +20,9 @@ export async function submitPowerAppOrchestrator(
   if (result.valid) {
     await deps.pipeline.advance(pipelineCase.id, 'delivery_confirmation');
 
-    // Demo: al aprobar, agendamos el correo de confirmación de entrega
-    // (t0 + 3–4 días emulados). Best-effort — un fallo acá no debe invalidar
+    // Demo: al aprobar, agendamos y disparamos el correo de confirmación de
+    // entrega (~10s después, sin esperar al cron diario). El submit tarda esos
+    // ~10s extra en responder. Best-effort — un fallo acá no debe invalidar
     // el radicado ya emitido, igual que el auto-avance de sales-calls.
     try {
       await deps.shipmentScheduler.scheduleShipment({

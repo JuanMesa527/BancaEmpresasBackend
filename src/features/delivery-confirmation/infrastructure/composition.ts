@@ -51,14 +51,12 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
 }
 
 /**
- * Scheduler para que power-apps agende el correo al aprobar (demo). Solo
- * necesita Supabase + dayMs; no exige Resend/token, que recién hacen falta
- * cuando el cron efectivamente envía.
+ * Scheduler para que power-apps agende y dispare el correo al aprobar (demo).
+ * Se le pasa la función `getDeliveryConfirmationDeps` (no su resultado): las
+ * deps completas (Resend, token secret) recién se resuelven dentro del
+ * submit, no al montar rutas — si faltara alguna, solo falla ese submit
+ * (best-effort, capturado por el orchestrator), no el arranque de toda la app.
  */
 export function getShipmentScheduler(): ShipmentScheduler {
-  const db = getSupabaseClient();
-  return new DemoShipmentScheduler(
-    new SupabaseDeliveryConfirmationRepository(db),
-    env.deliveryConfirmation.dayMs,
-  );
+  return new DemoShipmentScheduler(getDeliveryConfirmationDeps);
 }
