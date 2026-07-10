@@ -8,10 +8,10 @@ import type { PipelineStageAdvancer } from '../../../shared/contracts/pipeline.j
 import type { ShipmentScheduler } from '../../../shared/contracts/shipment-scheduler.js';
 import {
   SupabaseDeliveryConfirmationRepository,
-  SupabaseManagerDirectory,
+  ClientesFinalesManagerDirectory,
 } from './supabase-repository.js';
 import { HmacConfirmationTokenService } from './token-service.js';
-import { ResendDeliveryEmailSender } from './resend-email-sender.js';
+import { NodemailerGmailEmailSender } from './nodemailer-gmail-email-sender.js';
 import { DemoShipmentScheduler } from './demo-shipment-scheduler.js';
 
 export interface DeliveryConfirmationDeps {
@@ -37,8 +37,12 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
 
   deps = {
     repository: new SupabaseDeliveryConfirmationRepository(db),
-    managers: new SupabaseManagerDirectory(db),
-    emailSender: new ResendDeliveryEmailSender(env.resend.apiKey, env.resend.fromEmail),
+    // DEMO: destinatario tomado de clientes_finales.correo en vez de
+    // company_managers. Volver a SupabaseManagerDirectory para producción.
+    managers: new ClientesFinalesManagerDirectory(db),
+    // DEMO: envío por SMTP de Gmail (App Password) para poder mandar a los
+    // socios sin verificar dominio. Volver a ResendDeliveryEmailSender para prod.
+    emailSender: new NodemailerGmailEmailSender(env.gmail.user, env.gmail.appPassword),
     tokens: new HmacConfirmationTokenService(env.deliveryConfirmation.tokenSecret),
     pipeline: new SupabasePipelineStageAdvancer(db),
     dayMs: env.deliveryConfirmation.dayMs,
@@ -49,14 +53,12 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
 }
 
 /**
- * Scheduler para que power-apps agende el correo al aprobar (demo). Solo
- * necesita Supabase + dayMs; no exige Resend/token, que recién hacen falta
- * cuando el cron efectivamente envía.
+ * Scheduler para que power-apps agende y dispare el correo al aprobar (demo).
+ * Se le pasa la función `getDeliveryConfirmationDeps` (no su resultado): las
+ * deps completas (Resend, token secret) recién se resuelven dentro del
+ * submit, no al montar rutas — si faltara alguna, solo falla ese submit
+ * (best-effort, capturado por el orchestrator), no el arranque de toda la app.
  */
 export function getShipmentScheduler(): ShipmentScheduler {
-  const db = getSupabaseClient();
-  return new DemoShipmentScheduler(
-    new SupabaseDeliveryConfirmationRepository(db),
-    env.deliveryConfirmation.dayMs,
-  );
+  return new DemoShipmentScheduler(getDeliveryConfirmationDeps);
 }
