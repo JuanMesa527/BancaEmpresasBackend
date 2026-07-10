@@ -5,14 +5,14 @@ function normalizeId(value: string): string {
   return value.replace(/[.\-\s]/g, '').trim();
 }
 
-/** NIT empresarial: RUES usa 9 dígitos; el formulario puede traer el dígito de verificación (10). */
-function normalizeEmpresaNit(value: string): string {
+/** NIT empresarial: RUES usa 9 dígitos; el formulario puede traer el dígito de verificación (10). Solo cruce interno. */
+function nitBaseForRuesMatch(value: string): string {
   const digits = value.replace(/\D/g, '');
   if (!digits) return '';
   if (digits.length === 10 && (digits[0] === '8' || digits[0] === '9')) {
     return digits.slice(0, 9);
   }
-  return digits;
+  return digits.length >= 10 ? digits.slice(0, 9) : digits;
 }
 
 function normalizeName(value: string): string {
@@ -70,8 +70,8 @@ export function crossCheckPowerAppWithRues(
   consultation: RuesConsultation,
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const formNit = normalizeEmpresaNit(form.identificacionEmpresa ?? '');
-  const ruesNit = normalizeEmpresaNit(consultation.nit);
+  const formNit = nitBaseForRuesMatch(form.identificacionEmpresa ?? '');
+  const ruesNit = nitBaseForRuesMatch(consultation.nit);
 
   if (formNit && ruesNit && formNit !== ruesNit) {
     issues.push(

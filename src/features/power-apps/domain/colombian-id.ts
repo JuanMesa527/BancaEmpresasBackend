@@ -7,19 +7,15 @@ export function normalizeIdentification(value: string): string {
 }
 
 /**
- * NIT de persona jurídica: típicamente 9 dígitos (o 10 con DV).
- * La mayoría de NIT empresariales inician en 8 o 9.
+ * NIT de persona jurídica: 9 dígitos (base) o 10 con dígito de verificación.
  */
 export function looksLikeEmpresaNit(value: string): boolean {
   const id = normalizeIdentification(value);
-  if (!/^\d{9,11}$/.test(id)) return false;
-
-  const base = id.length >= 10 ? id.slice(0, 9) : id;
-  return /^[89]\d{8}$/.test(base) || id.length === 9;
+  return /^\d{9,10}$/.test(id);
 }
 
 function isNitPattern(id: string): boolean {
-  return id.length >= 9 && /^[89]\d{8,10}$/.test(id);
+  return id.length >= 9 && /^\d{9,10}$/.test(id);
 }
 
 export function looksLikeTarjetahabienteDocument(
