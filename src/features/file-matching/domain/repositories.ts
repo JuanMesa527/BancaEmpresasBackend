@@ -48,8 +48,8 @@ export interface ClientesFinalesRepository {
   findAll(): Promise<ClienteFinal[]>;
   findPage(query: ClientesFinalesPageQuery): Promise<ClientesFinalesPageResult>;
   findByClienteId(clienteId: string): Promise<ClienteFinal | null>;
-  /** cliente_id de las filas aún sin enriquecer con RUES (rues_enriched_at is null). */
-  findClienteIdsSinEnriquecer(limit?: number): Promise<string[]>;
+  /** cliente_id de todas las filas (para re-consultar RUES cuando se quiera). */
+  findAllClienteIds(limit?: number): Promise<string[]>;
   /** Guarda el enriquecimiento RUES de un cliente (empresa=null cuando no hubo coincidencia). */
   updateRuesEnrichment(clienteId: string, empresa: EmpresaRues | null): Promise<void>;
 }

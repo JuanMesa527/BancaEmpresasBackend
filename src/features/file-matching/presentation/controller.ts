@@ -38,16 +38,15 @@ export class FileMatchingController {
     res.json({ resumen });
   }
 
-  /** Enriquece clientes_finales con RUES (Croma); responde solo conteos. */
+  /** Re-consulta RUES (Croma) para todos los clientes_finales; responde solo conteos. */
   async enrichRues(req: Request, res: Response): Promise<void> {
-    const body = (req.body ?? {}) as { soloFaltantes?: unknown; limit?: unknown };
-    const soloFaltantes = typeof body.soloFaltantes === 'boolean' ? body.soloFaltantes : undefined;
+    const body = (req.body ?? {}) as { limit?: unknown };
     const limit =
       typeof body.limit === 'number' && Number.isInteger(body.limit) && body.limit > 0
         ? body.limit
         : undefined;
 
-    const resumen = await this.enrichClientesFinalesRues.execute({ soloFaltantes, limit });
+    const resumen = await this.enrichClientesFinalesRues.execute({ limit });
     res.json({ resumen });
   }
 

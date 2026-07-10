@@ -6,8 +6,6 @@ import { mapWithConcurrency } from '../infrastructure/map-with-concurrency.js';
 const CONCURRENCIA = 5;
 
 export interface EnrichRuesOptions {
-  /** Solo enriquece los que aún no tienen RUES (por defecto). Si false, reprocesa todos. */
-  soloFaltantes?: boolean;
   /** Tope de clientes a procesar en esta corrida. */
   limit?: number;
 }
@@ -31,12 +29,9 @@ export class EnrichClientesFinalesRuesUseCase {
     }
     this.isRunning = true;
     try {
-      const soloFaltantes = options.soloFaltantes ?? true;
-      const clienteIds = soloFaltantes
-        ? await this.clientesFinalesRepository.findClienteIdsSinEnriquecer(options.limit)
-        : (await this.clientesFinalesRepository.findAll())
-            .map((cliente) => cliente.clienteId)
-            .slice(0, options.limit ?? undefined);
+      // Siempre re-consulta todos: el representante legal y demás datos del RUES
+      // cambian con el tiempo, así que /enrich-rues refresca cuando se llame.
+      const clienteIds = await this.clientesFinalesRepository.findAllClienteIds(options.limit);
 
       let encontrados = 0;
       let sinCoincidencia = 0;

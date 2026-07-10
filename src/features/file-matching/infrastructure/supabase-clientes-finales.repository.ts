@@ -153,11 +153,10 @@ export class SupabaseClientesFinalesRepository implements ClientesFinalesReposit
     return this.toEntity(data as unknown as ClienteFinalRow);
   }
 
-  async findClienteIdsSinEnriquecer(limit?: number): Promise<string[]> {
+  async findAllClienteIds(limit?: number): Promise<string[]> {
     let builder = this.supabase
       .from(this.tabla)
       .select('cliente_id')
-      .is('rues_enriched_at', null)
       .order('cliente_id');
 
     if (limit !== undefined) {
