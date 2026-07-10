@@ -17,7 +17,7 @@ const envSchema = z.object({
   GMAIL_USER: z.string().email().optional().or(z.literal('')).default(''),
   GMAIL_APP_PASSWORD: z.string().optional().default(''),
   POWERAPPS_WEBHOOK_SECRET: z.string().optional().default(''),
-  TIME_COMPRESSION_DAY_MS: z.coerce.number().int().positive().default(60_000),
+  TIME_COMPRESSION_DAY_MS: z.coerce.number().int().positive().default(5_000),
   CONFIRMATION_TOKEN_SECRET: z.string().optional().default(''),
   FRONTEND_CONFIRMATION_URL: z.string().url().optional().or(z.literal('')).default(''),
   CRON_SECRET: z.string().optional().default(''),
@@ -79,7 +79,7 @@ export const env = {
     webhookSecret: data.POWERAPPS_WEBHOOK_SECRET,
   },
   deliveryConfirmation: {
-    /** Milisegundos que representan 1 día emulado (default: 1 min). */
+    /** Milisegundos que representan 1 día emulado (default: 5 s). */
     dayMs: data.TIME_COMPRESSION_DAY_MS,
     tokenSecret: data.CONFIRMATION_TOKEN_SECRET,
     frontendConfirmationUrl: data.FRONTEND_CONFIRMATION_URL || '',

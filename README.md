@@ -32,7 +32,7 @@ Servicio en `http://localhost:3000`.
 
 1. Importa el repo en [vercel.com](https://vercel.com) (Framework: **Other**, Build Command: vacío).
 2. Configura las variables de [`.env.example`](.env.example) en **Settings → Environment Variables**.
-3. En producción usa `TIME_COMPRESSION_DAY_MS=86400000` (1 día real).
+3. En local/demo usa `TIME_COMPRESSION_DAY_MS=5000` (5 s = 1 día emulado). En producción usa `86400000` (1 día real).
 4. Deploy. El cron de `vercel.json` procesa correos de delivery-confirmation cada 5 min (requiere plan Pro para frecuencia menor a 1/día).
 
 Health en producción: `GET https://<tu-app>.vercel.app/health`
