@@ -1,5 +1,7 @@
 /** Utilidades para distinguir NIT empresarial vs documento de persona natural (Colombia). */
 
+import type { TipoIdentificacionTarjetahabiente } from './power-app-request.js';
+
 export function normalizeIdentification(value: string): string {
   return value.replace(/[.\-\s]/g, '').trim();
 }
@@ -16,13 +18,39 @@ export function looksLikeEmpresaNit(value: string): boolean {
   return /^[89]\d{8}$/.test(base) || id.length === 9;
 }
 
+function isNitPattern(id: string): boolean {
+  return id.length >= 9 && /^[89]\d{8,10}$/.test(id);
+}
+
+export function looksLikeTarjetahabienteDocument(
+  value: string,
+  tipo: TipoIdentificacionTarjetahabiente = 'CC',
+): boolean {
+  const id = normalizeIdentification(value).toUpperCase();
+  if (!id) return false;
+
+  switch (tipo) {
+    case 'CC':
+      return /^\d{6,11}$/.test(id) && !isNitPattern(id);
+    case 'TI':
+      return /^\d{6,11}$/.test(id) && !isNitPattern(id);
+    case 'CE':
+      return /^\d{6,15}$/.test(id);
+    case 'PA':
+      return /^[A-Z0-9]{5,20}$/.test(id);
+    default:
+      return looksLikeNaturalPersonDocument(value);
+  }
+}
+
 /**
- * Cédula u otro documento PN: 6–10 dígitos, sin patrón típico de NIT empresarial.
+ * Cédula u otro documento PN: tolera formatos más largos (CE, pasaporte) cuando no se conoce el tipo.
  */
 export function looksLikeNaturalPersonDocument(value: string): boolean {
-  const id = normalizeIdentification(value);
-  if (!/^\d{6,10}$/.test(id)) return false;
-  if (id.length >= 9 && /^[89]\d{8,9}$/.test(id)) return false;
+  const id = normalizeIdentification(value).toUpperCase();
+  if (/^[A-Z0-9]{5,20}$/.test(id) && /[A-Z]/.test(id)) return true;
+  if (!/^\d{6,15}$/.test(id)) return false;
+  if (isNitPattern(id)) return false;
   return true;
 }
 

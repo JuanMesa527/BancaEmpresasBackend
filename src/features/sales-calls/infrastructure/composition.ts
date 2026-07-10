@@ -1,4 +1,5 @@
 import { SupabasePipelineStageAdvancer } from '../../../core/pipeline/application/advance-stage.js';
+import { SupabasePipelineCaseRepository } from '../../../core/pipeline/infrastructure/supabase-pipeline-case.repository.js';
 import { env } from '../../../infrastructure/config/env.js';
 import { getSupabaseClient } from '../../../infrastructure/database/supabase.js';
 import type {
@@ -19,6 +20,7 @@ import {
   ListCallBatchesUseCase,
 } from '../application/ListCallBatchesUseCase.js';
 import { ListCallsUseCase } from '../application/ListCallsUseCase.js';
+import { RegisterManualCallUseCase } from '../application/RegisterManualCallUseCase.js';
 import { SetBatchStatusUseCase } from '../application/SetBatchStatusUseCase.js';
 import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
 import type { CallRepository } from '../domain/CallRepository.js';
@@ -34,6 +36,7 @@ export interface SalesCallsDeps {
   initiateCall: InitiateCallUseCase;
   getCall: GetCallUseCase;
   listCalls: ListCallsUseCase;
+  registerManualCall: RegisterManualCallUseCase;
   getRecording: GetCallRecordingUseCase;
   handleWebhook: HandleCallWebhookUseCase;
   createBatch: CreateCallBatchUseCase;
@@ -63,6 +66,8 @@ export function getSalesCallsDeps(): SalesCallsDeps {
   const db = getSupabaseClient();
   const callRepository = new SupabaseCallRepository(db);
   const batchRepository = new SupabaseCallBatchRepository(db);
+  const pipelineCases = new SupabasePipelineCaseRepository(db);
+  const pipelineAdvancer = new SupabasePipelineStageAdvancer(db);
   const fonemaGateway = new FonemaHttpGateway(env.fonema.apiUrl, env.fonema.apiKey);
   const initiateCall = new InitiateCallUseCase(
     fonemaGateway,
@@ -77,11 +82,16 @@ export function getSalesCallsDeps(): SalesCallsDeps {
     initiateCall,
     getCall: new GetCallUseCase(callRepository),
     listCalls: new ListCallsUseCase(callRepository),
+    registerManualCall: new RegisterManualCallUseCase(
+      callRepository,
+      pipelineCases,
+      pipelineAdvancer,
+    ),
     getRecording: new GetCallRecordingUseCase(callRepository, fonemaGateway),
     handleWebhook: new HandleCallWebhookUseCase(
       callRepository,
       batchRepository,
-      new SupabasePipelineStageAdvancer(db),
+      pipelineAdvancer,
     ),
     createBatch: new CreateCallBatchUseCase(batchRepository, env.fonema.salesAgentId),
     dispatchBatches: new DispatchCallBatchesUseCase(batchRepository, initiateCall),
