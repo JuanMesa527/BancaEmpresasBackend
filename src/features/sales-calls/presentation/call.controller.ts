@@ -6,6 +6,7 @@ import type { GetCallUseCase } from '../application/GetCallUseCase.js';
 import type { HandleCallWebhookUseCase } from '../application/HandleCallWebhookUseCase.js';
 import type { InitiateCallUseCase } from '../application/InitiateCallUseCase.js';
 import type { ListCallsUseCase } from '../application/ListCallsUseCase.js';
+import type { RegisterManualCallUseCase } from '../application/RegisterManualCallUseCase.js';
 
 const initiateCallSchema = z.object({
   caseId: z.string().uuid().optional(),
@@ -17,11 +18,30 @@ const initiateCallSchema = z.object({
   delaySeconds: z.number().int().min(0).max(3600).optional(),
 });
 
+const manualCallSchema = z.object({
+  phoneNumber: z
+    .string()
+    .regex(/^\+\d{8,15}$/, 'phoneNumber debe estar en formato E.164, ej. +573001234567')
+    .optional(),
+  customerName: z.string().trim().min(1, 'El nombre del contacto es obligatorio'),
+  customerEmail: z.email().optional(),
+  variables: z.object({
+    empresa: z.string().trim().min(1, 'El nombre de la empresa es obligatorio'),
+    nit: z.string().trim().min(1, 'El NIT es obligatorio'),
+  }),
+  identidadVerificada: z.boolean(),
+  clienteInteresado: z.boolean(),
+  motivoNoInteres: z.string().max(500).optional(),
+  summary: z.string().max(2000).optional(),
+  durationSeconds: z.number().int().min(0).max(7200).optional(),
+});
+
 export class CallController {
   constructor(
     private readonly initiateCallUseCase: InitiateCallUseCase,
     private readonly getCallUseCase: GetCallUseCase,
     private readonly listCallsUseCase: ListCallsUseCase,
+    private readonly registerManualCallUseCase: RegisterManualCallUseCase,
     private readonly getCallRecordingUseCase: GetCallRecordingUseCase,
     private readonly handleCallWebhookUseCase: HandleCallWebhookUseCase,
   ) {}
@@ -34,6 +54,19 @@ export class CallController {
       }
       const call = await this.initiateCallUseCase.execute(parsed.data);
       res.status(202).json(call);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  registerManual = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = manualCallSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues.map((i) => i.message).join('; '));
+      }
+      const call = await this.registerManualCallUseCase.execute(parsed.data);
+      res.status(201).json(call);
     } catch (error) {
       next(error);
     }

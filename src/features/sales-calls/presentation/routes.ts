@@ -25,6 +25,7 @@ function getControllers(): Controllers {
       deps.initiateCall,
       deps.getCall,
       deps.listCalls,
+      deps.registerManualCall,
       deps.getRecording,
       deps.handleWebhook,
     ),
@@ -55,6 +56,7 @@ salesCallsRouter.get('/health', (_req, res) => {
 
 // Llamadas individuales
 salesCallsRouter.post('/calls', route((c) => c.call.initiate));
+salesCallsRouter.post('/calls/manual', route((c) => c.call.registerManual));
 salesCallsRouter.get('/calls', route((c) => c.call.list));
 salesCallsRouter.get('/calls/:id', route((c) => c.call.get));
 salesCallsRouter.get('/calls/:id/recording', route((c) => c.call.recording));
