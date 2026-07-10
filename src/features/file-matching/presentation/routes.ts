@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { env } from '../../../infrastructure/config/env.js';
 import { getSupabaseClient } from '../../../infrastructure/database/supabase.js';
+import { SupabasePipelineCaseRepository } from '../../../core/pipeline/infrastructure/supabase-pipeline-case.repository.js';
 import { BuildClientesFinalesUseCase } from '../application/build-clientes-finales.use-case.js';
 import { EnrichClientesFinalesRuesUseCase } from '../application/enrich-clientes-finales-rues.use-case.js';
 import { SupabaseBasePotencialRepository } from '../infrastructure/supabase-base-potencial.repository.js';
@@ -47,6 +48,7 @@ function getController(): FileMatchingController {
     clientesFinalesRepository,
     clientesFinalesSinPagareRepository,
     enrichClientesFinalesRues,
+    new SupabasePipelineCaseRepository(supabase),
   );
   return controller;
 }
@@ -60,10 +62,16 @@ fileMatchingRouter.get('/health', (_req, res) => {
 });
 
 fileMatchingRouter.post('/run', (req, res) => getController().run(req, res));
-fileMatchingRouter.post('/enrich-rues', (req, res) => getController().enrichRues(req, res));
-fileMatchingRouter.get('/clientes-finales/:clienteId', (req, res) =>
-  getController().getClienteFinalById(req, res),
-);
+fileMatchingRouter.post('/enrich-rues', (req, res, next) => {
+  getController()
+    .enrichRues(req, res)
+    .catch(next);
+});
+fileMatchingRouter.get('/clientes-finales/:clienteId', (req, res, next) => {
+  getController()
+    .getClienteFinalById(req, res)
+    .catch(next);
+});
 fileMatchingRouter.get('/clientes-finales', (req, res) =>
   getController().listClientesFinales(req, res),
 );
