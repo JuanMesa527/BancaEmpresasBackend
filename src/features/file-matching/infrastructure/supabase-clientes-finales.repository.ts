@@ -15,6 +15,8 @@ interface ClienteFinalRow {
   subsegmento: string | null;
   cupo_disponible: number | null;
   lea_aprobado: number | null;
+  correo: string | null;
+  telefono: string | null;
 }
 
 export class SupabaseClientesFinalesRepository implements ClientesFinalesRepository {
@@ -40,6 +42,8 @@ export class SupabaseClientesFinalesRepository implements ClientesFinalesReposit
       subsegmento: cliente.subsegmento,
       cupo_disponible: cliente.cupoDisponible,
       lea_aprobado: cliente.leaAprobado,
+      correo: cliente.correo,
+      telefono: cliente.telefono,
     }));
 
     for (const batch of chunk(rows, INSERT_BATCH_SIZE)) {
@@ -57,7 +61,7 @@ export class SupabaseClientesFinalesRepository implements ClientesFinalesReposit
   async findAll(): Promise<ClienteFinal[]> {
     const { data, error } = await this.supabase
       .from(this.tabla)
-      .select('cliente_id, nombre, ciudad, subsegmento, cupo_disponible, lea_aprobado')
+      .select('cliente_id, nombre, ciudad, subsegmento, cupo_disponible, lea_aprobado, correo, telefono')
       .order('cliente_id');
 
     if (error) {
@@ -75,6 +79,8 @@ export class SupabaseClientesFinalesRepository implements ClientesFinalesReposit
       subsegmento: row.subsegmento,
       cupoDisponible: row.cupo_disponible,
       leaAprobado: row.lea_aprobado,
+      correo: row.correo,
+      telefono: row.telefono,
     }));
   }
 }
