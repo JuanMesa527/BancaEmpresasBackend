@@ -1,6 +1,13 @@
 import type { Call } from './Call.js';
 
-function asBool(value: unknown): boolean {
+/**
+ * Interpreta un valor como booleano de TRES estados: `true`, `false` o
+ * `undefined` (desconocido). Distinguir "no reportado" de "reportado como falso"
+ * es esencial para el fallback de calificación: si el agente marca la llamada
+ * como exitosa pero no puebla las banderas estructuradas, no debemos tratar esa
+ * ausencia como una negativa explícita.
+ */
+function asTriState(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
     const v = value.trim().toLowerCase();
@@ -11,7 +18,7 @@ function asBool(value: unknown): boolean {
       return false;
     }
   }
-  return false;
+  return undefined;
 }
 
 /**
@@ -24,11 +31,13 @@ export function isCallQualified(call: Call): boolean {
   if (call.status !== 'completed') return false;
 
   const data = call.structuredData ?? {};
-  const identidad = asBool(data.identidad_verificada ?? data.identidadVerificada);
-  const interesado = asBool(data.cliente_interesado ?? data.clienteInteresado);
-  if (identidad && interesado) return true;
+  const identidad = asTriState(data.identidad_verificada ?? data.identidadVerificada);
+  const interesado = asTriState(data.cliente_interesado ?? data.clienteInteresado);
+  if (identidad === true && interesado === true) return true;
 
-  // Fallback: successEvaluation positiva y sin señales negativas explícitas.
-  const success = asBool(call.successEvaluation);
+  // Fallback: el agente marcó éxito global (successEvaluation) y no hay señales
+  // negativas EXPLÍCITAS. Que una bandera no venga (undefined) no bloquea: solo
+  // un `false` explícito descalifica. Sin tri-estado este camino sería inalcanzable.
+  const success = asTriState(call.successEvaluation) === true;
   return success && identidad !== false && interesado !== false;
 }
