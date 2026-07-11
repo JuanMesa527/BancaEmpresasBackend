@@ -25,7 +25,11 @@ export interface ConfirmDeliveryResult {
 
 /**
  * Procesa la respuesta del gerente:
- * - delivered_to_holder → caso confirmado y pipeline avanza a activation_follow_up.
+ * - delivered_to_holder → caso confirmado. El pipeline NO salta a
+ *   activation_follow_up: el caso queda en `delivery_confirmation` y el front lo
+ *   muestra como "Tarjeta y acuse" (Tarjeta fabricada) a partir del estado
+ *   `confirmed`. La felicitación + seguimiento se disparan luego en el cierre de
+ *   entrega (punto 5), no aquí.
  * - cualquier otro outcome → se reprograma el correo a +1 día emulado.
  */
 export async function confirmDelivery(
@@ -66,7 +70,6 @@ export async function confirmDelivery(
   }
 
   await deps.repository.confirm(deliveryCase.id, input.outcome, new Date());
-  await deps.pipeline.advance(deliveryCase.caseId, 'activation_follow_up');
 
   return { status: 'confirmed' };
 }
