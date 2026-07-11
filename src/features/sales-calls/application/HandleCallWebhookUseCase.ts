@@ -1,4 +1,5 @@
 import type { PipelineStageAdvancer } from '../../../shared/contracts/pipeline.js';
+import type { PipelineCaseRepository } from '../../../core/pipeline/domain/pipeline-case.repository.js';
 import type { Call, CallStatus, TranscriptMessage } from '../domain/Call.js';
 import type { CallRepository } from '../domain/CallRepository.js';
 import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
@@ -52,6 +53,10 @@ export class HandleCallWebhookUseCase {
     // Opcional: avanza el caso a power_apps cuando la llamada califica.
     // Ausente en seed/demo sin pipeline durable.
     private readonly pipeline?: PipelineStageAdvancer,
+    // Opcional: resuelve el caso del pipeline por NIT cuando la llamada llega
+    // sin `caseId` correlacionado (disparada desde el dashboard de Fonema, POST
+    // manual, o sin contexto de pipeline en el front).
+    private readonly pipelineCases?: PipelineCaseRepository,
   ) {}
 
   // Webhook "actualizaciones-de-llamada": cambios de estado en tiempo real.
@@ -118,23 +123,41 @@ export class HandleCallWebhookUseCase {
 
   /**
    * Handoff automático a la Power App: si la llamada cerró CALIFICADA (identidad
-   * verificada + interesado) y está correlacionada con un caso del pipeline,
-   * avanza pipeline_cases.stage -> 'power_apps' sin intervención manual. El front
-   * ya puede consumir GET /calls/{id}/handoff para pre-diligenciar la solicitud.
+   * verificada + interesado), avanza pipeline_cases.stage -> 'power_apps' sin
+   * intervención manual. El front ya puede consumir GET /calls/{id}/handoff para
+   * pre-diligenciar la solicitud.
+   *
+   * El caso se resuelve por el `caseId` correlacionado y, si la llamada no lo trae
+   * (disparada desde el dashboard de Fonema, POST manual, o sin contexto de
+   * pipeline en el front), por el NIT del lead (`variables.nit`). Sin esta segunda
+   * vía, una llamada exitosa sin `caseId` dejaba el caso clavado en su etapa.
    *
    * Best-effort: un fallo aquí (o un caso ya avanzado, que el advancer rechaza por
    * no retroceder) no debe romper el webhook — la grabación/resultado ya se guardó.
    */
   private async advancePipelineIfQualified(call: Call): Promise<void> {
-    if (!this.pipeline || !call.caseId) return;
+    if (!this.pipeline) return;
     if (!isCallQualified(call)) return;
 
     try {
-      await this.pipeline.advance(call.caseId, 'power_apps');
+      const caseId = await this.resolveCaseId(call);
+      if (!caseId) return;
+      await this.pipeline.advance(caseId, 'power_apps');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown error';
-      console.warn(`sales-calls: auto-avance a power_apps omitido (caso ${call.caseId}) — ${message}`);
+      console.warn(`sales-calls: auto-avance a power_apps omitido (llamada ${call.id}) — ${message}`);
     }
+  }
+
+  /** Caso correlacionado por `caseId`; si falta, se resuelve por el NIT del lead. */
+  private async resolveCaseId(call: Call): Promise<string | undefined> {
+    if (call.caseId) return call.caseId;
+
+    const nit = call.variables?.nit?.trim();
+    if (!nit || !this.pipelineCases) return undefined;
+
+    const pipelineCase = await this.pipelineCases.ensureByLeadId(nit);
+    return pipelineCase.id;
   }
 
   // Webhook "fin-de-sesion": se agotaron los reintentos hacia el cliente.

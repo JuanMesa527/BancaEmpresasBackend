@@ -92,6 +92,7 @@ export function getSalesCallsDeps(): SalesCallsDeps {
       callRepository,
       batchRepository,
       pipelineAdvancer,
+      pipelineCases,
     ),
     createBatch: new CreateCallBatchUseCase(batchRepository, env.fonema.salesAgentId),
     dispatchBatches: new DispatchCallBatchesUseCase(batchRepository, initiateCall),
