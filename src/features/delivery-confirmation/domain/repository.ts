@@ -30,3 +30,14 @@ export interface DeliveryConfirmationRepository {
 export interface ManagerDirectory {
   findByCompanyId(companyId: string): Promise<CompanyManager[]>;
 }
+
+/** Contacto del lead (tarjetahabiente) para la llamada de felicitación al cerrar. */
+export interface LeadContact {
+  nombre: string | null;
+  telefono: string | null;
+  correo: string | null;
+}
+
+export interface LeadContactDirectory {
+  findByCompanyId(companyId: string): Promise<LeadContact | null>;
+}

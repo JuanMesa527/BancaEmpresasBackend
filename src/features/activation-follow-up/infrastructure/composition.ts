@@ -2,6 +2,7 @@ import { SupabasePipelineStageAdvancer } from '../../../core/pipeline/applicatio
 import { SupabasePipelineCaseRepository } from '../../../core/pipeline/infrastructure/supabase-pipeline-case.repository.js';
 import { env } from '../../../infrastructure/config/env.js';
 import { getSupabaseClient } from '../../../infrastructure/database/supabase.js';
+import type { DeliveryFollowUpFinalizer } from '../../../shared/contracts/delivery-finalizer.js';
 import type { FollowUpCallService } from '../../../shared/contracts/follow-up-call.js';
 import { FinalizeDeliveryUseCase } from '../application/finalize-delivery.use-case.js';
 import { ListFollowUpCasesUseCase } from '../application/list-follow-up-cases.use-case.js';
@@ -46,4 +47,22 @@ export function getActivationFollowUpDeps(
   };
 
   return deps;
+}
+
+/**
+ * Implementación del contrato DeliveryFollowUpFinalizer (shared/contracts) para
+ * que delivery-confirmation cierre la entrega al confirmar el correo: reusa
+ * FinalizeDeliveryUseCase (crea el caso, avanza a activation_follow_up y dispara
+ * la felicitación, idempotente por cliente). El FollowUpCallService llega del
+ * composition root (lo implementa sales-calls).
+ */
+export function getDeliveryFollowUpFinalizer(
+  followUpCalls: FollowUpCallService,
+): DeliveryFollowUpFinalizer {
+  const { finalizeDelivery } = getActivationFollowUpDeps(followUpCalls);
+  return {
+    async finalize(input) {
+      await finalizeDelivery.execute(input);
+    },
+  };
 }

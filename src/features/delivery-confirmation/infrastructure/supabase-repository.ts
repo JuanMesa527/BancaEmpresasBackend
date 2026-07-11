@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   DeliveryConfirmationRepository,
+  LeadContact,
+  LeadContactDirectory,
   ManagerDirectory,
 } from '../domain/repository.js';
 import type {
@@ -255,5 +257,33 @@ export class ClientesFinalesManagerDirectory implements ManagerDirectory {
         name: (row.nombre as string | null) ?? 'Contacto',
         email: (row.correo as string).trim(),
       }));
+  }
+}
+
+/**
+ * Lee el contacto del lead (tarjetahabiente) desde `clientes_finales` por NIT,
+ * para la llamada de felicitación al cerrar la entrega. Mismo origen que el
+ * correo del destinatario (demo); reemplazar por la fuente real en producción.
+ */
+export class ClientesFinalesLeadContactDirectory implements LeadContactDirectory {
+  constructor(private readonly db: SupabaseClient) {}
+
+  async findByCompanyId(companyId: string): Promise<LeadContact | null> {
+    const normalizedCompanyId = normalizeLeadId(companyId);
+    const { data: row, error } = await this.db
+      .from('clientes_finales')
+      .select('nombre, telefono, correo')
+      .eq('cliente_id', normalizedCompanyId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw dbError('findByCompanyId(clientes_finales lead contact)', error);
+    if (!row) return null;
+
+    return {
+      nombre: (row.nombre as string | null) ?? null,
+      telefono: (row.telefono as string | null) ?? null,
+      correo: (row.correo as string | null) ?? null,
+    };
   }
 }

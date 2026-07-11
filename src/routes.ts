@@ -1,7 +1,8 @@
 import type { Express } from 'express';
 import { pipelineRouter } from './core/pipeline/presentation/routes.js';
+import { getDeliveryFollowUpFinalizer } from './features/activation-follow-up/infrastructure/composition.js';
 import { createActivationFollowUpRouter } from './features/activation-follow-up/presentation/routes.js';
-import { deliveryConfirmationRouter } from './features/delivery-confirmation/presentation/routes.js';
+import { createDeliveryConfirmationRouter } from './features/delivery-confirmation/presentation/routes.js';
 import { getShipmentScheduler } from './features/delivery-confirmation/infrastructure/composition.js';
 import { fileMatchingRouter } from './features/file-matching/presentation/routes.js';
 import { createPowerAppsRouter } from './features/power-apps/presentation/routes.js';
@@ -14,9 +15,15 @@ export function registerFeatureRoutes(app: Express): void {
   app.use('/api/file-matching', fileMatchingRouter);
   app.use('/api/sales-calls', salesCallsRouter);
   // El composition root es el único lugar que conoce todas las features:
-  // arma el ShipmentScheduler de delivery-confirmation y lo inyecta en power-apps,
-  // y el FollowUpCallService de sales-calls y lo inyecta en activation-follow-up.
+  // - arma el ShipmentScheduler de delivery-confirmation y lo inyecta en power-apps,
+  // - arma el FollowUpCallService de sales-calls y lo inyecta en activation-follow-up,
+  // - arma el finalizer de activation-follow-up y lo inyecta en delivery-confirmation
+  //   (cierre de entrega automático al confirmar el correo).
+  const followUpCalls = getFollowUpCallService();
   app.use('/api/power-apps', createPowerAppsRouter(getShipmentScheduler()));
-  app.use('/api/delivery-confirmation', deliveryConfirmationRouter);
-  app.use('/api/activation-follow-up', createActivationFollowUpRouter(getFollowUpCallService()));
+  app.use(
+    '/api/delivery-confirmation',
+    createDeliveryConfirmationRouter(getDeliveryFollowUpFinalizer(followUpCalls)),
+  );
+  app.use('/api/activation-follow-up', createActivationFollowUpRouter(followUpCalls));
 }
