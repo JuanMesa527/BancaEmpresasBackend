@@ -11,7 +11,10 @@ import { BuildPowerAppPrefillUseCase } from '../application/BuildPowerAppPrefill
 import { CreateCallBatchUseCase } from '../application/CreateCallBatchUseCase.js';
 import { DispatchCallBatchesUseCase } from '../application/DispatchCallBatchesUseCase.js';
 import { GetCallBatchUseCase } from '../application/GetCallBatchUseCase.js';
-import { GetCallRecordingUseCase } from '../application/GetCallRecordingUseCase.js';
+import {
+  GetCallRecordingUseCase,
+  type RecordingGatewayResolver,
+} from '../application/GetCallRecordingUseCase.js';
 import { GetCallUseCase } from '../application/GetCallUseCase.js';
 import { HandleCallWebhookUseCase } from '../application/HandleCallWebhookUseCase.js';
 import { InitiateCallUseCase } from '../application/InitiateCallUseCase.js';
@@ -75,6 +78,22 @@ export function getSalesCallsDeps(): SalesCallsDeps {
     env.fonema.salesAgentId,
   );
 
+  // Las grabaciones del agente de seguimiento viven en otra cuenta Fonema, así
+  // que su proxy debe autenticar con la API key de seguimiento. Se resuelve el
+  // gateway por el agente de la llamada (fallback al de ventas si no hay cuenta
+  // de seguimiento configurada).
+  const followUpGateway =
+    env.fonema.followUpApiKey && env.fonema.followUpAgentId
+      ? new FonemaHttpGateway(env.fonema.apiUrl, env.fonema.followUpApiKey)
+      : fonemaGateway;
+  const recordingGateways: RecordingGatewayResolver = {
+    gatewaysFor: (agentId) => {
+      const primary = agentId === env.fonema.followUpAgentId ? followUpGateway : fonemaGateway;
+      const alternate = primary === fonemaGateway ? followUpGateway : fonemaGateway;
+      return primary === alternate ? [primary] : [primary, alternate];
+    },
+  };
+
   deps = {
     callRepository,
     batchRepository,
@@ -87,7 +106,7 @@ export function getSalesCallsDeps(): SalesCallsDeps {
       pipelineCases,
       pipelineAdvancer,
     ),
-    getRecording: new GetCallRecordingUseCase(callRepository, fonemaGateway),
+    getRecording: new GetCallRecordingUseCase(callRepository, recordingGateways),
     handleWebhook: new HandleCallWebhookUseCase(
       callRepository,
       batchRepository,
