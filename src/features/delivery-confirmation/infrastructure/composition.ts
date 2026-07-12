@@ -1,7 +1,11 @@
 import { env } from '../../../infrastructure/config/env.js';
 import { getSupabaseClient } from '../../../infrastructure/database/supabase.js';
 import { SupabasePipelineStageAdvancer } from '../../../core/pipeline/application/advance-stage.js';
-import type { DeliveryConfirmationRepository, ManagerDirectory } from '../domain/repository.js';
+import type {
+  DeliveryConfirmationRepository,
+  LeadContactDirectory,
+  ManagerDirectory,
+} from '../domain/repository.js';
 import type { DeliveryEmailSender } from '../domain/email-sender.js';
 import type { ConfirmationTokenService } from '../domain/token-service.js';
 import type { PipelineStageAdvancer } from '../../../shared/contracts/pipeline.js';
@@ -9,6 +13,7 @@ import type { ShipmentScheduler } from '../../../shared/contracts/shipment-sched
 import {
   SupabaseDeliveryConfirmationRepository,
   ClientesFinalesManagerDirectory,
+  ClientesFinalesLeadContactDirectory,
 } from './supabase-repository.js';
 import { HmacConfirmationTokenService } from './token-service.js';
 import { NodemailerGmailEmailSender } from './nodemailer-gmail-email-sender.js';
@@ -30,6 +35,7 @@ function createEmailSender(): DeliveryEmailSender {
 export interface DeliveryConfirmationDeps {
   repository: DeliveryConfirmationRepository;
   managers: ManagerDirectory;
+  leadContacts: LeadContactDirectory;
   emailSender: DeliveryEmailSender;
   tokens: ConfirmationTokenService;
   pipeline: PipelineStageAdvancer;
@@ -53,6 +59,7 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
     // DEMO: destinatario tomado de clientes_finales.correo en vez de
     // company_managers. Volver a SupabaseManagerDirectory para producción.
     managers: new ClientesFinalesManagerDirectory(db),
+    leadContacts: new ClientesFinalesLeadContactDirectory(db),
     // DEMO: envío por SMTP de Gmail (App Password) para poder mandar a los
     // socios sin verificar dominio. Volver a ResendDeliveryEmailSender para prod.
     emailSender: createEmailSender(),
