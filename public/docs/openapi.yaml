@@ -849,6 +849,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/activation-follow-up/cases/process-reminders:
+    post:
+      tags: [Activation Follow-up]
+      summary: Tick de recordatorios disparado desde la app (botón "Actualizar")
+      description: |
+        Misma lógica que el tick de cron pero sin `CRON_SECRET`: lo invoca la
+        vista lateral "Seguimiento" del front. No puede spamear al cliente
+        porque la cadencia (`isReminderDue` + `lastReminderAt`) evita reenvíos:
+        un caso ya notificado en su ciclo no se vuelve a llamar.
+      operationId: processUsageRemindersFromApp
+      responses:
+        '200':
+          description: Resumen del tick (solo conteos)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [resumen]
+                properties:
+                  resumen:
+                    $ref: '#/components/schemas/FollowUpRemindersResumen'
+
 components:
   schemas:
     GlobalHealthResponse:
