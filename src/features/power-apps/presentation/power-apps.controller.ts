@@ -18,11 +18,6 @@ function mapZodIssues(error: ZodError): ValidationIssue[] {
   }));
 }
 
-/**
- * Factory del handler de submit. Recibe el ShipmentScheduler inyectado desde
- * el composition root (src/routes.ts) para no acoplar power-apps a internals
- * de delivery-confirmation; las deps de core/pipeline sí se arman inline.
- */
 export function createSubmitPowerAppHandler(shipmentScheduler: ShipmentScheduler) {
   return async function submitPowerAppHandler(
     req: Request,

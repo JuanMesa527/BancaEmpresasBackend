@@ -9,7 +9,6 @@ const envSchema = z.object({
   FONEMA_API_URL: z.string().url().optional().or(z.literal('')),
   FONEMA_API_KEY: z.string().optional().default(''),
   FONEMA_SALES_AGENT_ID: z.string().optional().default(''),
-  /** API key de la segunda cuenta Fonema (agente de seguimiento). */
   FONEMA_FOLLOWUP_API_KEY: z.string().optional().default(''),
   FONEMA_FOLLOWUP_AGENT_ID: z.string().optional().default(''),
   RESEND_API_KEY: z.string().optional().default(''),
@@ -21,9 +20,6 @@ const envSchema = z.object({
   CONFIRMATION_TOKEN_SECRET: z.string().optional().default(''),
   FRONTEND_CONFIRMATION_URL: z.string().url().optional().or(z.literal('')).default(''),
   CRON_SECRET: z.string().optional().default(''),
-  // Pacing por defecto de las campañas de llamadas (dos perillas + ventana).
-  // El techo real de concurrencia es el de la cuenta Fonema (~500); el pacing de
-  // negocio nunca debe excederlo.
   CALL_BATCH_MAX_CONCURRENT: z.coerce.number().int().positive().default(20),
   CALL_BATCH_PER_HOUR: z.coerce.number().int().positive().default(60),
   CALL_BATCH_BUSINESS_START_HOUR: z.coerce.number().int().min(0).max(23).default(8),
@@ -79,7 +75,6 @@ export const env = {
     webhookSecret: data.POWERAPPS_WEBHOOK_SECRET,
   },
   deliveryConfirmation: {
-    /** Milisegundos que representan 1 día emulado (default: 5 s). */
     dayMs: data.TIME_COMPRESSION_DAY_MS,
     tokenSecret: data.CONFIRMATION_TOKEN_SECRET,
     frontendConfirmationUrl: data.FRONTEND_CONFIRMATION_URL || '',

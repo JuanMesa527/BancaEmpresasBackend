@@ -5,7 +5,6 @@ import { AppError, ValidationError } from '../../../shared/exceptions/app-error.
 
 const PIPELINE_TABLE = 'pipeline_cases';
 
-/** Avanza el stage de un caso del pipeline en Supabase, validando el orden. */
 export class SupabasePipelineStageAdvancer implements PipelineStageAdvancer {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -25,7 +24,6 @@ export class SupabasePipelineStageAdvancer implements PipelineStageAdvancer {
       throw new AppError('Database operation failed', 500, 'DB_ERROR');
     }
     if (!row) {
-      // El caso puede no existir aún en demos parciales; avisamos sin romper el flujo.
       console.warn(`pipeline advance: case ${caseId} not found in ${PIPELINE_TABLE}, skipping`);
       return;
     }

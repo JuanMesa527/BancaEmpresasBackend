@@ -45,10 +45,6 @@ export interface DeliveryConfirmationDeps {
 
 let deps: DeliveryConfirmationDeps | null = null;
 
-/**
- * Construye (una sola vez) las dependencias reales del feature.
- * Lanza un error claro si falta configuración (Supabase, Resend, secret).
- */
 export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
   if (deps) return deps;
 
@@ -56,12 +52,8 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
 
   deps = {
     repository: new SupabaseDeliveryConfirmationRepository(db),
-    // DEMO: destinatario tomado de clientes_finales.correo en vez de
-    // company_managers. Volver a SupabaseManagerDirectory para producción.
     managers: new ClientesFinalesManagerDirectory(db),
     leadContacts: new ClientesFinalesLeadContactDirectory(db),
-    // DEMO: envío por SMTP de Gmail (App Password) para poder mandar a los
-    // socios sin verificar dominio. Volver a ResendDeliveryEmailSender para prod.
     emailSender: createEmailSender(),
     tokens: new HmacConfirmationTokenService(env.deliveryConfirmation.tokenSecret),
     pipeline: new SupabasePipelineStageAdvancer(db),
@@ -72,13 +64,6 @@ export function getDeliveryConfirmationDeps(): DeliveryConfirmationDeps {
   return deps;
 }
 
-/**
- * Scheduler para que power-apps agende y dispare el correo al aprobar (demo).
- * Se le pasa la función `getDeliveryConfirmationDeps` (no su resultado): las
- * deps completas (Resend, token secret) recién se resuelven dentro del
- * submit, no al montar rutas — si faltara alguna, solo falla ese submit
- * (best-effort, capturado por el orchestrator), no el arranque de toda la app.
- */
 export function getShipmentScheduler(): ShipmentScheduler {
   return new DemoShipmentScheduler(getDeliveryConfirmationDeps);
 }

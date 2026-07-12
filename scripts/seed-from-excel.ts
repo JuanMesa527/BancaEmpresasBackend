@@ -1,11 +1,3 @@
-/**
- * Precarga las 3 tablas fuente del cruce (paso 1 del pipeline) desde los Excel en docs/.
- * En producción estas tablas se poblarán desde una fuente externa; este seed es solo para pruebas.
- *
- * Uso:
- *   npm run seed              — parsea y sube a Supabase (requiere SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env)
- *   npm run seed -- --dry-run — solo parsea y muestra conteos, no toca la base
- */
 import 'dotenv/config';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
@@ -14,9 +6,7 @@ import { getSupabaseClient } from '../src/infrastructure/database/supabase.js';
 type ColumnType = 'text' | 'numeric' | 'date';
 
 interface ColumnMapping {
-  /** Encabezado exacto en el Excel (se compara con trim) */
   header: string;
-  /** Columna destino en Supabase */
   column: string;
   type: ColumnType;
 }
@@ -25,21 +15,14 @@ interface SourceConfig {
   file: string;
   sheet: string;
   table: string;
-  /** Columna llave del cruce: las filas sin este valor se descartan */
   keyColumn: string;
   columns: ColumnMapping[];
-  /** Transformación opcional sobre las filas ya parseadas (p. ej. datos de contacto de prueba). */
   augment?: (rows: Record<string, unknown>[]) => void;
 }
 
-// npm ejecuta los scripts con cwd en la raíz del paquete
 const DOCS_DIR = path.resolve(process.cwd(), 'docs');
 const BATCH_SIZE = 1000;
 
-/**
- * Contactos de prueba (demo): correo y teléfono emparejados por contacto.
- * Se reparten por partes iguales sobre base_potencial. No son datos reales de clientes.
- */
 const CONTACTOS_DEMO = [
   { correo: 'mesacalderon@gmail.com', telefono: '3224118118' },
   { correo: 'thomasjuti1210@gmail.com', telefono: '3142016630' },
@@ -47,10 +30,6 @@ const CONTACTOS_DEMO = [
   { correo: 'bryanalexanderbogota@gmail.com', telefono: '3104083853' },
 ] as const;
 
-/**
- * Asigna a cada fila un contacto (correo + teléfono) repartido por partes iguales
- * y de forma aleatoria: construye buckets balanceados y los baraja (Fisher–Yates).
- */
 function asignarContactosDemo(rows: Record<string, unknown>[]): void {
   const buckets = rows.map((_, i) => i % CONTACTOS_DEMO.length);
   for (let i = buckets.length - 1; i > 0; i -= 1) {
@@ -131,7 +110,6 @@ const sources: SourceConfig[] = [
   },
 ];
 
-/** Aplana el valor de una celda de exceljs a un primitivo. */
 function cellToRaw(value: ExcelJS.CellValue): string | number | boolean | Date | null {
   if (value === null || value === undefined) return null;
   if (value instanceof Date) return value;
@@ -144,7 +122,6 @@ function cellToRaw(value: ExcelJS.CellValue): string | number | boolean | Date |
   return value;
 }
 
-/** Días entre la época de Excel (1899-12-30) y una fecha serial. */
 function excelSerialToIsoDate(serial: number): string {
   const ms = Date.UTC(1899, 11, 30) + serial * 86_400_000;
   return new Date(ms).toISOString().slice(0, 10);
@@ -187,7 +164,6 @@ async function parseSource(source: SourceConfig): Promise<Record<string, unknown
     throw new Error(`Hoja '${source.sheet}' no encontrada en ${source.file}`);
   }
 
-  // Mapa encabezado (trim) -> índice de columna, para ser resiliente a reordenamientos
   const headerIndex = new Map<string, number>();
   sheet.getRow(1).eachCell((cell, colNumber) => {
     const header = toText(cellToRaw(cell.value));

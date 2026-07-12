@@ -104,12 +104,8 @@ export class CallController {
       const total = data.length;
       res.setHeader('Content-Type', contentType);
       res.setHeader('Accept-Ranges', 'bytes');
-      // Permite que el frontend (otro origen) embeba el audio; sobreescribe
-      // el Cross-Origin-Resource-Policy: same-origin que aplica helmet.
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-      // Soporte de HTTP Range: permite al reproductor saltar/adelantar
-      // (el navegador pide "bytes=inicio-fin" y espera 206 Partial Content).
       const range = req.headers.range;
       if (range) {
         const match = /bytes=(\d*)-(\d*)/.exec(range);

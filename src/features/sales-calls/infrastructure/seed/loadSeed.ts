@@ -2,8 +2,6 @@ import { join } from 'node:path';
 import type { Call } from '../../domain/Call.js';
 import type { CallRepository } from '../../domain/CallRepository.js';
 
-// Carga datos de demo en el repositorio cuando SEED_DEMO=true.
-// Solo para desarrollo/demo; no debe usarse en producción.
 export async function loadSeed(repository: CallRepository): Promise<void> {
   try {
     const { readFileSync } = await import('node:fs');

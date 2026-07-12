@@ -63,7 +63,6 @@ function toDomain(row: CallRow): Call {
 }
 
 function toRow(call: Call): Record<string, unknown> {
-  // successEvaluation puede ser boolean|string en el dominio; la columna es text.
   const successEvaluation =
     call.successEvaluation === undefined ? null : String(call.successEvaluation);
 
@@ -99,12 +98,10 @@ function dbError(operation: string, error: { message: string }): AppError {
   return new AppError('Database operation failed', 500, 'DB_ERROR');
 }
 
-/** Persistencia durable de llamadas Fonema (reemplaza InMemoryCallRepository en serverless). */
 export class SupabaseCallRepository implements CallRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async save(call: Call): Promise<void> {
-    // upsert por id: initiate crea, los webhooks actualizan la misma fila.
     const { error } = await this.db.from(TABLE).upsert(toRow(call), { onConflict: 'id' });
     if (error) throw dbError('save', error);
   }

@@ -10,7 +10,6 @@ export interface DeliveryConfirmationRepository {
   create(data: NewDeliveryConfirmationCase): Promise<DeliveryConfirmationCase>;
   findById(id: string): Promise<DeliveryConfirmationCase | null>;
   findByCaseId(caseId: string): Promise<DeliveryConfirmationCase | null>;
-  /** Casos scheduled/retry_scheduled cuyo email_scheduled_at ya venció. */
   findDue(now: Date): Promise<DeliveryConfirmationCase[]>;
   markSent(id: string, sentAt: Date): Promise<void>;
   confirm(id: string, outcome: DeliveryConfirmationOutcome, confirmedAt: Date): Promise<void>;
@@ -20,7 +19,6 @@ export interface DeliveryConfirmationRepository {
     nextEmailAt: Date,
   ): Promise<void>;
   recordEmailAttempt(attempt: DeliveryEmailAttempt): Promise<void>;
-  /** Busca el intento de correo por hash de token (para validar y marcar uso único). */
   findEmailAttemptByTokenHash(
     tokenHash: string,
   ): Promise<{ deliveryCaseId: string; managerEmail: string; status: string } | null>;
@@ -31,7 +29,6 @@ export interface ManagerDirectory {
   findByCompanyId(companyId: string): Promise<CompanyManager[]>;
 }
 
-/** Contacto del lead (tarjetahabiente) para la llamada de felicitación al cerrar. */
 export interface LeadContact {
   nombre: string | null;
   telefono: string | null;

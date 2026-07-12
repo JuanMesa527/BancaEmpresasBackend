@@ -1,7 +1,3 @@
-/**
- * Aplica `fn` a cada item con un máximo de `limit` ejecuciones concurrentes.
- * Preserva el orden de los resultados. Útil para limitar llamadas HTTP salientes.
- */
 export async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,

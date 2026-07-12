@@ -5,13 +5,6 @@ const TICK_INTERVAL_MS = 5_000;
 
 let timer: NodeJS.Timeout | null = null;
 
-/**
- * Loop local (solo dev, fuera de Vercel) que revisa la cadencia de recordatorios
- * por inactividad. En Vercel lo reemplaza el cron
- * /api/activation-follow-up/cron/process-reminders. Con la compresión de tiempo
- * por defecto (1 min = 1 día), el primer recordatorio cae ~30 min después del
- * último uso registrado.
- */
 export function startActivationFollowUpScheduler(followUpCalls: FollowUpCallService): void {
   if (timer) return;
 

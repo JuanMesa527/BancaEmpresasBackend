@@ -1,4 +1,3 @@
-/** Estados del pipeline de venta de tarjetas de crédito (HITL). */
 export type PipelineStage =
   | 'file_matching'
   | 'sales_call'
@@ -21,9 +20,7 @@ export const PIPELINE_ORDER: readonly PipelineStage[] = [
 ] as const;
 
 export interface PipelineLeadRef {
-  /** Identificador interno del lead / prospecto */
   leadId: string;
-  /** Documento o llave de cruce (sin PII extra en logs) */
   matchKey: string;
 }
 
@@ -36,10 +33,6 @@ export interface PipelineCase {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Contrato para que las features avancen el pipeline sin importar
- * internals de core/pipeline.
- */
 export interface PipelineStageAdvancer {
   advance(caseId: string, toStage: PipelineStage): Promise<void>;
 }

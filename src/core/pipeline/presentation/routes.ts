@@ -3,10 +3,6 @@ import { getSupabaseClient } from '../../../infrastructure/database/supabase.js'
 import { SupabasePipelineCaseRepository } from '../infrastructure/supabase-pipeline-case.repository.js';
 import { PipelineController } from './pipeline.controller.js';
 
-/**
- * Orquestación del pipeline HITL:
- * file-matching → sales-calls → power-apps → delivery-confirmation → activation-follow-up
- */
 export const pipelineRouter = Router();
 
 let controller: PipelineController | null = null;

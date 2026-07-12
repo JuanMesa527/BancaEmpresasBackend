@@ -1,4 +1,3 @@
-/** Solicitud completa de la Power App en un solo payload (POST /api/power-apps/submit). */
 
 export type TipoIdentificacionEmpresa = 'NIT';
 export type TipoIdentificacionTarjetahabiente = 'CC' | 'CE' | 'PA' | 'TI';
@@ -17,7 +16,6 @@ export interface PowerAppRequest {
   tipoIdentificacionTarjetahabiente: TipoIdentificacionTarjetahabiente;
   numeroIdentificacionTarjetahabiente: string;
   unidadNegocios: string;
-  /** Siempre LATAM Business en esta campaña. */
   tipoTarjetaNueva: string;
   identificacionEmpresa: string;
   nombreEmpresa: string;
@@ -28,7 +26,6 @@ export interface PowerAppRequest {
   cupoTarjetaNueva: number;
   cupoDisponibleCec?: number;
 
-  /** Imágenes/archivos del caso ("Subir imágenes del caso"). */
   archivosAdjuntos: string[];
 
   codigoOficinaCentroServicio: string;

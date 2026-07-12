@@ -4,25 +4,13 @@ import { isWithinContactWindow } from '../domain/pacing.js';
 import type { InitiateCallUseCase } from './InitiateCallUseCase.js';
 
 export interface DispatchResult {
-  /** Batches evaluados (running). */
   batchesConsidered: number;
-  /** Llamadas efectivamente disparadas en este tick. */
   dialed: number;
-  /** Batches cerrados a completed en este tick. */
   completedBatches: number;
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
-/**
- * Dispatcher PROGRESSIVE: en cada tick (Vercel Cron) drena las colas respetando
- * concurrencia (maxConcurrent), throughput (perHour) y ventana de contacto.
- * "Dispara la siguiente cuando se libera un slot" — sin sobre-marcado ni abandono,
- * porque un agente de voz-IA es un slot que contesta al instante.
- *
- * No abre conexiones persistentes ni usa timers en memoria: es idempotente por tick
- * y seguro en serverless (el estado vive en Supabase).
- */
 export class DispatchCallBatchesUseCase {
   constructor(
     private readonly batchRepository: CallBatchRepository,
@@ -35,7 +23,6 @@ export class DispatchCallBatchesUseCase {
     let completedBatches = 0;
 
     for (const batch of batches) {
-      // 1) Cierre del batch: sin activos ni en cola → completed.
       const active = await this.batchRepository.countActive(batch.id);
       const queued = await this.batchRepository.countByStatuses(batch.id, ['queued']);
       if (active === 0 && queued === 0) {
@@ -44,11 +31,9 @@ export class DispatchCallBatchesUseCase {
         continue;
       }
 
-      // 2) Fuera de ventana de contacto → no marcar (cumplimiento).
       if (!isWithinContactWindow(batch.pacing, now)) continue;
       if (queued === 0) continue;
 
-      // 3) Headroom = min(slots libres, cupo del rate horario, en cola).
       const startedLastHour = await this.batchRepository.countStartedSince(
         batch.id,
         new Date(now.getTime() - ONE_HOUR_MS),
@@ -58,7 +43,6 @@ export class DispatchCallBatchesUseCase {
       const headroom = Math.min(concurrencyHeadroom, rateHeadroom, queued);
       if (headroom <= 0) continue;
 
-      // 4) Claim atómico y disparo de cada llamada (reusa InitiateCallUseCase).
       const claimed = await this.batchRepository.claimQueued(batch.id, headroom);
       for (const item of claimed) {
         dialed += await this.dialOne(batch, item.id, item);
@@ -82,7 +66,6 @@ export class DispatchCallBatchesUseCase {
         caseId: item.caseId,
       });
 
-      // Item queda dialing con la correlación (sessionId/callId) para el webhook.
       await this.batchRepository.markItem(itemId, 'dialing', {
         callId: call.id,
         sessionId: call.sessionId,
@@ -90,7 +73,6 @@ export class DispatchCallBatchesUseCase {
       });
       return 1;
     } catch (error) {
-      // No aborta el lote: los demás items deben seguir (patrón process-due-emails).
       const message = error instanceof Error ? error.message : 'unknown error';
       console.error(`call-batch dispatch: failed to dial item ${itemId} — ${message}`);
       await this.batchRepository.markItem(itemId, 'failed', {

@@ -102,7 +102,6 @@ function itemToDomain(row: ItemRow): CallBatchItem {
   };
 }
 
-/** Dedupe de leads por leadId conservando el primero (idempotencia de entrada). */
 function dedupeLeads(leads: NewBatchLead[]): NewBatchLead[] {
   const seen = new Set<string>();
   const unique: NewBatchLead[] = [];
@@ -252,7 +251,6 @@ export class SupabaseCallBatchRepository implements CallBatchRepository {
   async claimQueued(batchId: string, limit: number): Promise<CallBatchItem[]> {
     if (limit <= 0) return [];
 
-    // 1) candidatos en cola (orden estable por creación).
     const { data: candidates, error: selError } = await this.db
       .from(ITEMS_TABLE)
       .select('id')
@@ -265,7 +263,6 @@ export class SupabaseCallBatchRepository implements CallBatchRepository {
     const ids = (candidates as { id: string }[]).map((c) => c.id);
     if (ids.length === 0) return [];
 
-    // 2) claim atómico: solo transiciona los que SIGUEN en cola (guard anti doble-tick).
     const now = new Date().toISOString();
     const { data: claimed, error: updError } = await this.db
       .from(ITEMS_TABLE)

@@ -14,17 +14,10 @@ export interface FinalizeDeliveryInput {
 
 export interface FinalizeDeliveryResult {
   caso: FollowUpCaseView;
-  /** true solo la primera vez, si la llamada de felicitación se pudo iniciar. */
   llamadaFelicitacionIniciada: boolean;
   yaExistia: boolean;
 }
 
-/**
- * Check del punto 5 del portafolio: "entrega de la TC finalizada".
- * Idempotente por cliente: la PRIMERA vez crea el caso de seguimiento, dispara
- * la llamada de felicitación (best-effort) y avanza el pipeline a
- * activation_follow_up. Las siguientes veces devuelve el caso sin re-llamar.
- */
 export class FinalizeDeliveryUseCase {
   constructor(
     private readonly repository: FollowUpCaseRepository,
@@ -46,8 +39,6 @@ export class FinalizeDeliveryUseCase {
       };
     }
 
-    // Vincular el caso del pipeline y avanzarlo (best-effort: en demos parciales
-    // puede no existir o ya estar adelante; eso no bloquea el seguimiento).
     let caseId: string | null = null;
     try {
       caseId = (await this.pipelineCases.ensureByLeadId(input.clienteId)).id;
@@ -76,7 +67,6 @@ export class FinalizeDeliveryUseCase {
     };
   }
 
-  /** Llamada de felicitación por la nueva TC (best-effort, solo primera vez). */
   private async iniciarFelicitacion(
     clienteId: string,
     input: FinalizeDeliveryInput,

@@ -13,11 +13,8 @@ export interface ConfirmDeliveryInput {
 export interface ConfirmDeliveryDeps {
   repository: DeliveryConfirmationRepository;
   tokens: ConfirmationTokenService;
-  /** Contacto del lead (NIT) para la felicitación al cerrar la entrega. */
   leadContacts: LeadContactDirectory;
-  /** Cierre de entrega: crea el caso de seguimiento, avanza el pipeline y felicita. */
   finalizer: DeliveryFollowUpFinalizer;
-  /** Milisegundos que representan 1 día emulado (para el reintento). */
   dayMs: number;
 }
 
@@ -26,15 +23,6 @@ export interface ConfirmDeliveryResult {
   nextEmailAt?: string;
 }
 
-/**
- * Procesa la respuesta del gerente:
- * - delivered_to_holder → caso confirmado y CIERRE DE ENTREGA automático: avanza
- *   el pipeline a activation_follow_up y dispara la llamada de seguimiento
- *   (felicitación) reusando el finalizer de activation-follow-up (idempotente por
- *   cliente). Best-effort: un fallo del cierre no invalida la confirmación ya
- *   registrada.
- * - cualquier otro outcome → se reprograma el correo a +1 día emulado.
- */
 export async function confirmDelivery(
   input: ConfirmDeliveryInput,
   deps: ConfirmDeliveryDeps,
@@ -74,9 +62,6 @@ export async function confirmDelivery(
 
   await deps.repository.confirm(deliveryCase.id, input.outcome, new Date());
 
-  // Cierre de entrega automático: el finalizer avanza el pipeline a
-  // activation_follow_up y dispara la felicitación. Best-effort — la entrega ya
-  // quedó confirmada; un fallo aquí no debe romper la respuesta al gerente.
   try {
     const contact = await deps.leadContacts.findByCompanyId(deliveryCase.companyId);
     await deps.finalizer.finalize({

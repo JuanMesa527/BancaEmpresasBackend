@@ -7,15 +7,9 @@ export interface ProcessDueEmailsDeps {
   managers: ManagerDirectory;
   emailSender: DeliveryEmailSender;
   tokens: ConfirmationTokenService;
-  /** Base de la URL del frontend donde el gerente confirma. */
   frontendConfirmationUrl: string;
 }
 
-/**
- * Busca casos cuyo correo ya venció, envía un correo por gerente con link
- * firmado y marca el caso como awaiting_confirmation.
- * Devuelve cuántos casos procesó.
- */
 export async function processDueEmails(
   deps: ProcessDueEmailsDeps,
   options?: { pipelineCaseId?: string },
@@ -63,7 +57,6 @@ export async function processDueEmails(
           `delivery-confirmation: email sent to ${manager.email} for case ${dueCase.id} (company ${dueCase.companyId})`,
         );
       } catch (error) {
-        // No abortamos el lote: otros gerentes/casos deben seguir procesándose.
         console.error(
           `delivery-confirmation: failed to send email to ${manager.email} for case ${dueCase.id}`,
           error,

@@ -6,7 +6,6 @@ const RUES_PATH = '/co/rues/entity-by-nit/v1';
 const REQUEST_TIMEOUT_MS = 15_000;
 const RETRY_DELAY_MS = 600;
 
-/** Forma parcial de la respuesta de Croma RUES (solo lo que consumimos). */
 interface CiiuActivity {
   code?: string | null;
   description?: string | null;
@@ -28,14 +27,12 @@ interface RuesEntity {
   ciiu_4?: CiiuActivity | null;
 }
 
-/** Contenido de `data` en la respuesta. */
 interface RuesResult {
   found?: boolean;
   entity?: RuesEntity | null;
   related_parties?: RelatedParty[] | null;
 }
 
-/** La respuesta de Croma envuelve todo en `data`. */
 interface CromaEnvelope {
   data?: RuesResult | null;
 }
@@ -45,19 +42,12 @@ function trimOrNull(value: string | null | undefined): string | null {
   return text === '' ? null : text;
 }
 
-/** Deja solo dígitos (Croma espera document_number numérico). */
 function soloDigitos(nit: string): string {
   return nit.replace(/\D/g, '');
 }
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Candidatos de document_number a consultar, en orden. Croma espera el NIT SIN
- * dígito de verificación; en clientes_finales el NIT suele venir con DV (10 díg.),
- * así que para esos se prueba primero sin el último dígito (1 sola llamada en el
- * caso común) y el completo como respaldo.
- */
 function candidatosDocumento(documento: string): string[] {
   const candidatos = documento.length >= 10
     ? [documento.slice(0, -1), documento]
@@ -65,7 +55,6 @@ function candidatosDocumento(documento: string): string[] {
   return [...new Set(candidatos.filter((doc) => doc.length >= 4))];
 }
 
-/** Elige el representante legal (prioriza el principal) de related_parties. */
 function pickRepresentanteLegal(parties: RelatedParty[]): RelatedParty | null {
   const legales = parties.filter((party) => (party.role ?? '').toLowerCase().includes('representante legal'));
   if (legales.length === 0) return null;
@@ -104,7 +93,6 @@ export class CromaRuesClient implements RuesProvider {
     return null;
   }
 
-  /** Devuelve el bloque `data` de la respuesta, con un reintento ante fallo transitorio. */
   private async consultar(documentNumber: string): Promise<RuesResult | null> {
     if (!this.apiUrl || !this.apiKey) {
       throw new AppError('Croma no está configurado (CROMA_API_URL / CROMA_API_KEY).', 500, 'CROMA_NOT_CONFIGURED');
@@ -118,7 +106,6 @@ export class CromaRuesClient implements RuesProvider {
     throw new AppError('No se pudo consultar Croma RUES.', 502, 'CROMA_ERROR');
   }
 
-  /** Un intento: retry=true indica fallo transitorio (429/5xx/red/timeout). */
   private async intento(
     documentNumber: string,
   ): Promise<{ result: RuesResult | null; retry: boolean }> {
@@ -140,7 +127,6 @@ export class CromaRuesClient implements RuesProvider {
         return { result: null, retry: true };
       }
       if (!response.ok) {
-        // No se propaga el cuerpo (puede exponer detalles); solo el status.
         throw new AppError(`Croma RUES respondió ${response.status}`, 502, 'CROMA_ERROR');
       }
 
@@ -148,7 +134,6 @@ export class CromaRuesClient implements RuesProvider {
       return { result: body.data ?? null, retry: false };
     } catch (error) {
       if (error instanceof AppError) throw error;
-      // Red/timeout/abort → transitorio.
       return { result: null, retry: true };
     } finally {
       clearTimeout(timeout);

@@ -103,8 +103,6 @@ export class SupabaseFollowUpCaseRepository implements FollowUpCaseRepository {
   }
 
   async registerReminder(clienteId: string, at: Date): Promise<void> {
-    // Lee el contador actual y lo incrementa; el guard isRunning del use case
-    // evita ticks solapados, así que no hay carrera práctica en este update.
     const { data, error } = await this.db
       .from(TABLE)
       .select('reminder_count')

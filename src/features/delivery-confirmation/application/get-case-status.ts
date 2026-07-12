@@ -13,7 +13,6 @@ export interface CaseStatusView {
   attemptCount: number;
 }
 
-/** Estado del caso por caseId del pipeline (para UI/ops, sin PII). */
 export async function getCaseStatus(
   caseId: string,
   repository: DeliveryConfirmationRepository,
@@ -41,10 +40,6 @@ export interface ConfirmationView {
   status: DeliveryEmailStatus;
 }
 
-/**
- * Datos mínimos para renderizar la página de confirmación del frontend
- * a partir de un token firmado.
- */
 export async function getConfirmationView(
   token: string,
   deps: { repository: DeliveryConfirmationRepository; tokens: ConfirmationTokenService },

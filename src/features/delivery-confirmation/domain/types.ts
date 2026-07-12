@@ -1,11 +1,9 @@
-/** Resultado de la confirmación del gerente sobre la entrega física. */
 export type DeliveryConfirmationOutcome =
   | 'delivered_to_holder'
   | 'not_arrived'
   | 'holder_absent'
   | 'return_to_bank';
 
-/** Outcomes que reprograman un nuevo correo (+1 día). */
 export const RETRY_OUTCOMES: readonly DeliveryConfirmationOutcome[] = [
   'not_arrived',
   'holder_absent',
@@ -22,7 +20,6 @@ export type DeliveryEmailStatus =
 
 export interface DeliveryConfirmationCase {
   id: string;
-  /** Caso del pipeline al que pertenece esta tarjeta. */
   caseId: string;
   cardId: string;
   companyId: string;
@@ -30,9 +27,7 @@ export interface DeliveryConfirmationCase {
   cardLastFour: string;
   status: DeliveryEmailStatus;
   outcome?: DeliveryConfirmationOutcome;
-  /** Fecha/hora emulada o real del envío físico de la tarjeta. */
   physicalShippedAt: string;
-  /** Cuándo debe enviarse (o reenviarse) el correo. */
   emailScheduledAt: string;
   sentAt?: string;
   confirmedAt?: string;
@@ -49,7 +44,6 @@ export interface NewDeliveryConfirmationCase {
   emailScheduledAt: string;
 }
 
-/** Registro de auditoría de un correo enviado a un gerente. */
 export interface DeliveryEmailAttempt {
   deliveryCaseId: string;
   managerEmail: string;

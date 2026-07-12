@@ -10,7 +10,6 @@ export interface InitiateCallRequest {
   script?: string;
   variables?: Record<string, string>;
   delaySeconds?: number;
-  /** Caso del pipeline; se persiste en la llamada para el auto-avance a power_apps. */
   caseId?: string;
 }
 

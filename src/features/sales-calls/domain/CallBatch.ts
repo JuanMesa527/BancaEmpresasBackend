@@ -1,7 +1,5 @@
-/** Estado de una campaña de llamadas (batch). */
 export type BatchStatus = 'running' | 'paused' | 'completed' | 'cancelled';
 
-/** Estado de un item de la cola del batch. */
 export type BatchItemStatus =
   | 'queued'
   | 'dialing'
@@ -10,20 +8,11 @@ export type BatchItemStatus =
   | 'failed'
   | 'skipped';
 
-/** Horario hábil de contacto (control de cumplimiento, no solo UX). */
 export interface BusinessHours {
-  /** Hora local de inicio (0–23). */
   startHour: number;
-  /** Hora local de fin exclusiva (1–24). */
   endHour: number;
 }
 
-/**
- * Dos perillas independientes + ventana de contacto:
- * - maxConcurrent: slots simultáneos (concurrencia).
- * - perHour: ritmo de arranque (throughput).
- * - window/businessHours: cuándo se permite marcar.
- */
 export interface PacingPolicy {
   maxConcurrent: number;
   perHour: number;
@@ -49,7 +38,6 @@ export interface CallBatchItem {
   id: string;
   batchId: string;
   leadId: string;
-  /** Caso del pipeline (pipeline_cases.id) para avanzar a power_apps al calificar. */
   caseId?: string;
   phoneNumber: string;
   customerName?: string;
@@ -67,10 +55,8 @@ export interface CallBatchItem {
   updatedAt: string;
 }
 
-/** Lead de entrada al crear un batch (una llamada a agendar). */
 export interface NewBatchLead {
   leadId: string;
-  /** Caso del pipeline; si se envía, habilita el auto-avance a power_apps. */
   caseId?: string;
   phoneNumber: string;
   customerName?: string;
@@ -78,7 +64,6 @@ export interface NewBatchLead {
   variables?: Record<string, string>;
 }
 
-/** Datos para crear un batch nuevo (ya validados). */
 export interface NewCallBatch {
   name: string;
   agentId: string;
@@ -87,7 +72,6 @@ export interface NewCallBatch {
   leads: NewBatchLead[];
 }
 
-/** Conteo de items por estado — insumo del polling de progreso. */
 export interface BatchCounts {
   queued: number;
   dialing: number;

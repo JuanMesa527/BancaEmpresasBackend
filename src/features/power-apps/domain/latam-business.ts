@@ -1,7 +1,5 @@
-/** Producto fijo de la campaña — siempre TC LATAM Business. */
 export const TIPO_TARJETA_LATAM_BUSINESS = 'LATAM BUSINESS';
 
-/** Valores aceptados para el campo "Tipo de tarjeta nueva" de la Power App. */
 export const TIPOS_TARJETA_ACEPTADOS = new Set([
   'LATAM BUSINESS',
   'LATAM BUSINESS VISA',
@@ -9,7 +7,6 @@ export const TIPOS_TARJETA_ACEPTADOS = new Set([
   'TC LATAM BUSINESS',
 ]);
 
-/** BIN(es) válidos asociados al producto LATAM Business en la Power App. */
 export const BINES_LATAM_BUSINESS = new Set(['491250', '549166']);
 
 export function isTipoTarjetaLatamBusiness(value: string): boolean {

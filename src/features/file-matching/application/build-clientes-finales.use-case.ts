@@ -7,23 +7,7 @@ import type {
   PagaresRepository,
 } from '../domain/repositories.js';
 
-/**
- * Cruza las 3 tablas fuente y persiste las dos listas resultado:
- *
- * 1. Validación sin pagaré (clientes_finales_sin_pagare): cliente gestionable
- *    + sin tarjeta de crédito (base potencial) + con cupo disponible (CEC).
- * 2. Validación completa (clientes_finales): la anterior + pagaré activo
- *    (clientes potenciales para grabar).
- *
- * El cruce parte de CEC (la tabla pequeña) para no leer la base potencial completa.
- */
 export class BuildClientesFinalesUseCase {
-  /**
-   * El cruce es repetible: el front lo dispara con un botón cuando quiera y cada
-   * corrida regenera ambas tablas por completo. Este flag impide corridas
-   * solapadas (doble clic / usuarios concurrentes), que dejarían las tablas
-   * derivadas inconsistentes porque replaceAll borra y luego inserta.
-   */
   private isRunning = false;
 
   constructor(
@@ -63,7 +47,6 @@ export class BuildClientesFinalesUseCase {
     }
   }
 
-  /** Pasos comunes a ambas validaciones: cupo CEC ∩ gestionable sin TC. */
   private async buildCandidatosSinPagare(): Promise<{
     candidatos: ClienteFinal[];
     cecConCupo: number;
@@ -75,7 +58,6 @@ export class BuildClientesFinalesUseCase {
       ...cecPorId.keys(),
     ]);
 
-    // La base potencial puede traer el mismo cliente_id más de una vez; se conserva la primera fila.
     const candidatosPorId = new Map<string, ClienteFinal>();
     for (const cliente of gestionables) {
       const cec = cecPorId.get(cliente.clienteId);
@@ -89,7 +71,6 @@ export class BuildClientesFinalesUseCase {
         leaAprobado: cec.leaAprobado,
         correo: cliente.correo,
         telefono: cliente.telefono,
-        // Enriquecimiento RUES: se llena aparte con POST /enrich-rues.
         representanteLegalNombre: null,
         representanteLegalDocumento: null,
         representanteLegalCargo: null,
@@ -105,7 +86,6 @@ export class BuildClientesFinalesUseCase {
     return { candidatos: [...candidatosPorId.values()], cecConCupo: cecClientes.length };
   }
 
-  /** Condición adicional de la validación completa: pagaré activo. */
   private async aplicarCondicionPagare(candidatos: ClienteFinal[]): Promise<{
     clientesFinales: ClienteFinal[];
     conPagareActivo: number;

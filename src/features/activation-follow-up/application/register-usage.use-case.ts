@@ -3,11 +3,6 @@ import type { FollowUpCaseView } from '../domain/entities.js';
 import { buildFollowUpView } from '../domain/follow-up-policy.js';
 import type { FollowUpCaseRepository } from '../domain/repository.js';
 
-/**
- * Registra un uso de la tarjeta (demo: botón en la vista de seguimiento; en
- * producción vendría de los sistemas transaccionales del banco). Reinicia el
- * ciclo de recordatorios.
- */
 export class RegisterUsageUseCase {
   constructor(
     private readonly repository: FollowUpCaseRepository,

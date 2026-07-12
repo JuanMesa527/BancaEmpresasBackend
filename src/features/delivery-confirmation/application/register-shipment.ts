@@ -9,20 +9,14 @@ export interface RegisterShipmentInput {
   companyId: string;
   cardHolderName: string;
   cardLastFour: string;
-  /** Si no viene, se asume que el envío físico ocurre ahora. */
   physicalShippedAt?: string;
 }
 
 export interface RegisterShipmentDeps {
   repository: DeliveryConfirmationRepository;
-  /** Milisegundos que representan 1 día emulado. */
   dayMs: number;
 }
 
-/**
- * Registra el envío físico de una tarjeta y agenda el correo al gerente
- * para dentro de 3–4 días (emulados con tiempo comprimido).
- */
 export async function registerShipment(
   input: RegisterShipmentInput,
   deps: RegisterShipmentDeps,
@@ -33,7 +27,6 @@ export async function registerShipment(
     throw new ValidationError('physicalShippedAt is not a valid date');
   }
 
-  // Delay aleatorio entre 3 y 4 días emulados.
   const delayDays = 3 + Math.random();
   const emailScheduledAt = new Date(shippedAt.getTime() + delayDays * deps.dayMs);
 

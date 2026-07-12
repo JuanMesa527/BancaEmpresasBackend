@@ -2,7 +2,6 @@ import type { FollowUpCaseView } from '../domain/entities.js';
 import { buildFollowUpView } from '../domain/follow-up-policy.js';
 import type { FollowUpCaseRepository } from '../domain/repository.js';
 
-/** Lista los casos de seguimiento con los campos calculados para la UI. */
 export class ListFollowUpCasesUseCase {
   constructor(
     private readonly repository: FollowUpCaseRepository,

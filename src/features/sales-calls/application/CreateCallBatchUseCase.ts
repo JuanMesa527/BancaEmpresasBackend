@@ -9,7 +9,6 @@ export interface CreateCallBatchRequest {
   defaultVariables?: Record<string, string>;
 }
 
-/** Crea una campaña de llamadas y encola sus leads (dedupe por leadId en el repo). */
 export class CreateCallBatchUseCase {
   constructor(
     private readonly batchRepository: CallBatchRepository,

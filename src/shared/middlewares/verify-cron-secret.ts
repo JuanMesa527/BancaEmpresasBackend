@@ -1,10 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { env } from '../../infrastructure/config/env.js';
 
-/**
- * Protege endpoints invocados por Vercel Cron (Authorization: Bearer CRON_SECRET).
- * En local, si CRON_SECRET no está definido, permite el acceso para pruebas.
- */
 export function verifyCronSecret(req: Request, res: Response, next: NextFunction): void {
   const secret = env.cron.secret;
 

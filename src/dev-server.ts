@@ -5,7 +5,6 @@ import { startActivationFollowUpScheduler } from './features/activation-follow-u
 import { startDeliveryConfirmationScheduler } from './features/delivery-confirmation/infrastructure/scheduler.js';
 import { getFollowUpCallService } from './features/sales-calls/infrastructure/composition.js';
 
-// Vercel detecta Express a través de este entrypoint.
 void express;
 
 const app = createApp();

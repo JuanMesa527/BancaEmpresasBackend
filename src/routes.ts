@@ -9,16 +9,10 @@ import { createPowerAppsRouter } from './features/power-apps/presentation/routes
 import { getFollowUpCallService } from './features/sales-calls/infrastructure/composition.js';
 import { salesCallsRouter } from './features/sales-calls/presentation/routes.js';
 
-/** Registra las rutas HTTP de cada feature del pipeline. */
 export function registerFeatureRoutes(app: Express): void {
   app.use('/api/pipeline', pipelineRouter);
   app.use('/api/file-matching', fileMatchingRouter);
   app.use('/api/sales-calls', salesCallsRouter);
-  // El composition root es el único lugar que conoce todas las features:
-  // - arma el ShipmentScheduler de delivery-confirmation y lo inyecta en power-apps,
-  // - arma el FollowUpCallService de sales-calls y lo inyecta en activation-follow-up,
-  // - arma el finalizer de activation-follow-up y lo inyecta en delivery-confirmation
-  //   (cierre de entrega automático al confirmar el correo).
   const followUpCalls = getFollowUpCallService();
   app.use('/api/power-apps', createPowerAppsRouter(getShipmentScheduler()));
   app.use(

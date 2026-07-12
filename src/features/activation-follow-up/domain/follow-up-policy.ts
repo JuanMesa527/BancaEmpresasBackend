@@ -1,13 +1,5 @@
 import type { FollowUpCase, FollowUpCaseView, FollowUpFase } from './entities.js';
 
-/**
- * Política de seguimiento de uso (funciones puras, días emulados con dayMs):
- * la TC se inactiva a los 90 días sin uso. Cadencia de recordatorios:
- *   - mes 1 (día 30–59): UNA llamada por ciclo de uso (al detectar el mes sin uso)
- *   - mes 2 (día 60–89): cada 15 días (riesgo desde el día 75)
- *   - mes 3 (día ≥90):   semanal, hasta que registre uso o se cancele
- * Registrar uso reinicia el ciclo (los recordatorios previos dejan de contar).
- */
 
 export const DIA_PRIMER_RECORDATORIO = 30;
 export const DIA_INICIO_MES_2 = 60;
@@ -19,8 +11,6 @@ const INTERVALO_MES_3 = 7;
 export function diasSinUso(caso: FollowUpCase, now: Date, dayMs: number): number {
   const elapsed = now.getTime() - new Date(caso.lastUsedAt).getTime();
   const dias = Math.floor(Math.max(0, elapsed) / dayMs);
-  // La TC se inactiva a los 90 días sin uso: el contador se topa ahí (no tiene
-  // sentido de negocio contar más allá de la inactivación).
   return Math.min(DIA_INACTIVACION, dias);
 }
 
@@ -31,7 +21,6 @@ export function faseDe(dias: number): FollowUpFase {
   return 'mes_3';
 }
 
-/** Último recordatorio del ciclo de uso actual (posterior al último uso), si existe. */
 function recordatorioDelCiclo(caso: FollowUpCase): Date | null {
   if (!caso.lastReminderAt) return null;
   const reminder = new Date(caso.lastReminderAt);
@@ -60,7 +49,6 @@ function proximaLlamadaEstimada(caso: FollowUpCase, now: Date, dayMs: number): s
   if (!ultimoRecordatorio) return desde(caso.lastUsedAt, DIA_PRIMER_RECORDATORIO);
   if (dias >= DIA_INACTIVACION) return desde(ultimoRecordatorio, INTERVALO_MES_3);
   if (dias >= DIA_INICIO_MES_2) return desde(ultimoRecordatorio, INTERVALO_MES_2);
-  // mes 1 ya llamado: la siguiente cae al entrar al mes 2
   return desde(caso.lastUsedAt, DIA_INICIO_MES_2);
 }
 
@@ -76,10 +64,6 @@ export function buildFollowUpView(caso: FollowUpCase, now: Date, dayMs: number):
   };
 }
 
-/**
- * Normaliza un teléfono colombiano a E.164 (lo que exige Fonema).
- * Celulares demo vienen como '3224118118' → '+573224118118'.
- */
 export function toE164Colombia(telefono: string): string | null {
   const limpio = telefono.replace(/[\s()-]/g, '');
   if (/^\+\d{8,15}$/.test(limpio)) return limpio;

@@ -36,7 +36,6 @@ function docType(value: string | undefined): TipoDocumento | undefined {
 
 type PuntoEntrega = NonNullable<PowerAppPrefill['puntoEntrega']>;
 
-/** Normaliza lo que el agente haya dicho ("courier", "a comercial"...) al enum del submit. */
 function puntoEntrega(value: string | undefined): PuntoEntrega | undefined {
   if (!value) return undefined;
   const v = value.toLowerCase();
@@ -51,8 +50,6 @@ function puntoEntrega(value: string | undefined): PuntoEntrega | undefined {
 }
 
 function buildPrefill(call: Call): PowerAppPrefill {
-  // Prioridad: variables de ENTRADA (semilla de file-matching) < análisis <
-  // variables de SALIDA (lo que el agente recolectó/confirmó en la llamada).
   const vars = call.variables ?? {};
   const data = (call.structuredData ?? {}) as Record<string, unknown>;
   const output = call.outputVariables ?? {};
@@ -110,9 +107,6 @@ function buildPrefill(call: Call): PowerAppPrefill {
   };
 }
 
-/**
- * Handoff a la Power App: mapea una llamada CALIFICADA al prefill de la solicitud.
- */
 export class BuildPowerAppPrefillUseCase {
   constructor(private readonly callRepository: CallRepository) {}
 

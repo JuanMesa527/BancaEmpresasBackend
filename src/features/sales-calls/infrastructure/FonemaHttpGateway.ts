@@ -6,8 +6,6 @@ import type {
 } from '../domain/FonemaGateway.js';
 
 export class FonemaHttpGateway implements FonemaGateway {
-  // Caché en memoria de grabaciones ya descargadas, para no re-pedir el
-  // audio completo a Fonema en cada petición de rango (seek del reproductor).
   private readonly recordingCache = new Map<string, FonemaRecording>();
 
   constructor(

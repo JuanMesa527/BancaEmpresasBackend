@@ -11,11 +11,8 @@ import { SupabasePagaresRepository } from '../infrastructure/supabase-pagares.re
 import { CromaRuesClient } from '../infrastructure/croma-rues.client.js';
 import { FileMatchingController } from './controller.js';
 
-/** Cruce de archivos: base potencial × CEC × pagarés → clientes_finales[_sin_pagare] */
 export const fileMatchingRouter = Router();
 
-// Composición perezosa: getSupabaseClient() exige credenciales, y /health debe
-// responder aunque Supabase no esté configurado.
 let controller: FileMatchingController | null = null;
 
 function getController(): FileMatchingController {

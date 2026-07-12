@@ -6,11 +6,6 @@ const TICK_INTERVAL_MS = 5_000;
 let timer: NodeJS.Timeout | null = null;
 let running = false;
 
-/**
- * Arranca el loop que revisa casos con correo vencido y los envía.
- * Si el feature no está configurado (Supabase/Resend/secret), lo reporta
- * una vez y no programa el loop.
- */
 export function startDeliveryConfirmationScheduler(): void {
   if (timer) return;
 

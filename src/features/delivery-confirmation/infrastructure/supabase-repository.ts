@@ -232,13 +232,6 @@ export class SupabaseManagerDirectory implements ManagerDirectory {
   }
 }
 
-/**
- * ATAJO DE DEMO — no es la lógica correcta. El destinatario del correo debería
- * ser el gerente de la empresa (company_managers), no el contacto del lead.
- * Para la demo tomamos el correo directamente de clientes_finales (columna
- * `correo`), cruzando por el NIT (`cliente_id` = companyId). Reemplazar por
- * SupabaseManagerDirectory cuando company_managers esté poblado.
- */
 export class ClientesFinalesManagerDirectory implements ManagerDirectory {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -260,11 +253,6 @@ export class ClientesFinalesManagerDirectory implements ManagerDirectory {
   }
 }
 
-/**
- * Lee el contacto del lead (tarjetahabiente) desde `clientes_finales` por NIT,
- * para la llamada de felicitación al cerrar la entrega. Mismo origen que el
- * correo del destinatario (demo); reemplazar por la fuente real en producción.
- */
 export class ClientesFinalesLeadContactDirectory implements LeadContactDirectory {
   constructor(private readonly db: SupabaseClient) {}
 

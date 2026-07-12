@@ -9,12 +9,6 @@ import {
 } from '../domain/follow-up-policy.js';
 import type { FollowUpCaseRepository } from '../domain/repository.js';
 
-/**
- * Tick del cron de recordatorios por inactividad: para cada caso cuya cadencia
- * lo exige (mes 1: día 30; mes 2: cada 15 días; mes 3: semanal), dispara la
- * llamada de recordatorio y registra el envío. Un fallo puntual no aborta el
- * lote (mismo patrón que process-due-emails / DispatchCallBatches).
- */
 export class ProcessUsageRemindersUseCase {
   private isRunning = false;
 

@@ -43,9 +43,6 @@ export async function submitPowerAppOrchestrator(
 
     await deps.pipeline.advance(pipelineCase.id, 'delivery_confirmation');
 
-    // Demo: al aprobar, agendamos y disparamos el correo de confirmación de
-    // entrega de inmediato (sin esperar al cron diario). Best-effort — un fallo
-    // acá no debe invalidar el radicado ya emitido, igual que el auto-avance de sales-calls.
     try {
       await deps.shipmentScheduler.scheduleShipment({
         caseId: pipelineCase.id,

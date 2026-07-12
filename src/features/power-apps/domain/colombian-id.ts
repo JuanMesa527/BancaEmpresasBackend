@@ -1,4 +1,3 @@
-/** Utilidades para distinguir NIT empresarial vs documento de persona natural (Colombia). */
 
 import type { TipoIdentificacionTarjetahabiente } from './power-app-request.js';
 
@@ -6,9 +5,6 @@ export function normalizeIdentification(value: string): string {
   return value.replace(/[.\-\s]/g, '').trim();
 }
 
-/**
- * NIT de persona jurídica: 9 dígitos (base) o 10 con dígito de verificación.
- */
 export function looksLikeEmpresaNit(value: string): boolean {
   const id = normalizeIdentification(value);
   return /^\d{9,10}$/.test(id);
@@ -39,9 +35,6 @@ export function looksLikeTarjetahabienteDocument(
   }
 }
 
-/**
- * Cédula u otro documento PN: tolera formatos más largos (CE, pasaporte) cuando no se conoce el tipo.
- */
 export function looksLikeNaturalPersonDocument(value: string): boolean {
   const id = normalizeIdentification(value).toUpperCase();
   if (/^[A-Z0-9]{5,20}$/.test(id) && /[A-Z]/.test(id)) return true;

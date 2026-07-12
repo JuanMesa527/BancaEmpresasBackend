@@ -3,10 +3,6 @@ import { createSubmitPowerAppHandler, getPowerAppSubmissionByLeadHandler } from 
 import { consultarRuesHandler, ruesHealthHandler } from './rues.controller.js';
 import type { ShipmentScheduler } from '../../../shared/contracts/shipment-scheduler.js';
 
-/**
- * Simulador de Power App: comprobación de campos y decisión operativa.
- * Recibe el ShipmentScheduler para agendar el correo al aprobar (demo).
- */
 export function createPowerAppsRouter(shipmentScheduler: ShipmentScheduler): Router {
   const router = Router();
   const submitPowerAppHandler = createSubmitPowerAppHandler(shipmentScheduler);

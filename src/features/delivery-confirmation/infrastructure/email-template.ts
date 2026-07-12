@@ -1,14 +1,12 @@
 import type { DeliveryEmailPayload } from '../domain/email-sender.js';
 import { BANCO_BOGOTA_LOGO_BASE64_PNG } from './logo-base64.js';
 
-/** Asunto del correo de confirmación de entrega (cambia si es recordatorio). */
 export function buildDeliverySubject(isRetry: boolean): string {
   return isRetry
     ? 'Recordatorio: confirme la entrega de la tarjeta empresarial'
     : 'Confirme la entrega de la tarjeta empresarial';
 }
 
-// Paleta de la app (src/styles.css del frontend).
 const PRIMARY = '#0f4c97';
 const ACCENT = '#1b4da1';
 const TINT = '#e5effb';
@@ -17,10 +15,6 @@ const BODY = '#556072';
 const BORDER = '#e6ecf2';
 const PAGE_BG = '#f4f7fb';
 
-/**
- * Cuerpo HTML del correo, con layout de tablas y estilos inline para que
- * renderice consistente en clientes de correo (Gmail ignora <style> y flex/grid).
- */
 export function buildDeliveryHtml(payload: DeliveryEmailPayload): string {
   const retryNotice = payload.isRetry
     ? `<tr><td style="padding: 0 32px 4px;">

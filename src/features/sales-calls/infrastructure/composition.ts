@@ -53,10 +53,6 @@ export interface SalesCallsDeps {
 
 let deps: SalesCallsDeps | null = null;
 
-/**
- * Construye (una sola vez) las dependencias durables de sales-calls.
- * Lanza un error claro si falta configuración (Supabase o Fonema).
- */
 export function getSalesCallsDeps(): SalesCallsDeps {
   if (deps) return deps;
 
@@ -78,10 +74,6 @@ export function getSalesCallsDeps(): SalesCallsDeps {
     env.fonema.salesAgentId,
   );
 
-  // Las grabaciones del agente de seguimiento viven en otra cuenta Fonema, así
-  // que su proxy debe autenticar con la API key de seguimiento. Se resuelve el
-  // gateway por el agente de la llamada (fallback al de ventas si no hay cuenta
-  // de seguimiento configurada).
   const followUpGateway =
     env.fonema.followUpApiKey && env.fonema.followUpAgentId
       ? new FonemaHttpGateway(env.fonema.apiUrl, env.fonema.followUpApiKey)
@@ -125,14 +117,6 @@ export function getSalesCallsDeps(): SalesCallsDeps {
   return deps;
 }
 
-/**
- * Implementación del contrato FollowUpCallService (shared/contracts) para que
- * activation-follow-up dispare llamadas del agente de seguimiento sin importar
- * internals de esta feature. Usa FONEMA_FOLLOWUP_API_KEY + FONEMA_FOLLOWUP_AGENT_ID
- * (cuenta/agente distintos a ventas) y persiste en la misma tabla `calls`
- * (visible en /llamadas y cerrada por los mismos webhooks). Construcción
- * perezosa: valida config en la primera llamada, no al arrancar.
- */
 class FonemaFollowUpCallService implements FollowUpCallService {
   private initiateCall: InitiateCallUseCase | null = null;
 
@@ -170,7 +154,6 @@ class FonemaFollowUpCallService implements FollowUpCallService {
 
 let followUpCallService: FollowUpCallService | null = null;
 
-/** Punto de acceso para el composition root (src/routes.ts). */
 export function getFollowUpCallService(): FollowUpCallService {
   if (!followUpCallService) {
     followUpCallService = new FonemaFollowUpCallService();

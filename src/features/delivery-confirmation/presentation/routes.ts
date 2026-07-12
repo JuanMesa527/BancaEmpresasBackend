@@ -26,16 +26,9 @@ const confirmSchema = z.object({
 const tokenParamSchema = z.string().min(10).max(2048);
 const caseIdParamSchema = z.string().uuid();
 
-/**
- * Confirmación de entrega física de tarjeta al gerente de la empresa.
- * Tras ~3–4 días (emulados) del envío se notifica por correo; el gerente confirma
- * y, si entregó, se cierra la entrega (avance a activation_follow_up + felicitación)
- * vía el `finalizer` que llega del composition root (lo implementa activation-follow-up).
- */
 export function createDeliveryConfirmationRouter(finalizer: DeliveryFollowUpFinalizer): Router {
   const router = Router();
 
-  /** Registra el envío físico de una tarjeta y agenda el correo (t0 + 3–4 días). */
   router.post('/shipments', async (req, res) => {
     const parsed = registerShipmentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -53,7 +46,6 @@ export function createDeliveryConfirmationRouter(finalizer: DeliveryFollowUpFina
     });
   });
 
-  /** Datos mínimos para renderizar la página de confirmación del frontend. */
   router.get('/confirmations/:token', async (req, res) => {
     const parsed = tokenParamSchema.safeParse(req.params.token);
     if (!parsed.success) {
@@ -65,7 +57,6 @@ export function createDeliveryConfirmationRouter(finalizer: DeliveryFollowUpFina
     res.json(view);
   });
 
-  /** Respuesta del gerente: confirma entrega o reprograma reintento (+1 día). */
   router.post('/confirm', async (req, res) => {
     const parsed = confirmSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -77,17 +68,12 @@ export function createDeliveryConfirmationRouter(finalizer: DeliveryFollowUpFina
     res.json(result);
   });
 
-  /**
-   * Procesa correos vencidos. En Vercel lo invoca el cron cada 5 min;
-   * en local el scheduler hace lo mismo cada 5 s.
-   */
   router.get('/cron/process-due', verifyCronSecret, async (_req, res) => {
     const deps = getDeliveryConfirmationDeps();
     const processed = await processDueEmails(deps);
     res.json({ processed });
   });
 
-  /** Estado del caso por caseId del pipeline (UI/ops). */
   router.get('/cases/:caseId', async (req, res) => {
     const parsed = caseIdParamSchema.safeParse(req.params.caseId);
     if (!parsed.success) {

@@ -4,11 +4,9 @@ import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
 export interface CallBatchProgress {
   batch: CallBatch;
   counts: BatchCounts;
-  /** Fracción completada (completed+failed+skipped)/total, 0 si no hay items. */
   progress: number;
 }
 
-/** Agregados de una campaña para el polling del cliente. */
 export class GetCallBatchUseCase {
   constructor(private readonly batchRepository: CallBatchRepository) {}
 

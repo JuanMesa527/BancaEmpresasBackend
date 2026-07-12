@@ -6,12 +6,6 @@ import { chunk } from './chunk.js';
 
 const IN_CHUNK_SIZE = 200;
 
-/**
- * Segmentos objetivo del cruce. En base_potencial, la columna "direccion" no es
- * una dirección postal sino el segmento del cliente (Pequeña / Mediana /
- * Empresarial / Corporativo / Gobierno / Pyme No Gestionable). Solo se gestionan
- * los tres primeros. Deben coincidir exactamente con los valores del Excel (acentos incluidos).
- */
 const SEGMENTOS_OBJETIVO = ['Pequeña', 'Mediana', 'Empresarial'];
 
 interface BasePotencialRow {

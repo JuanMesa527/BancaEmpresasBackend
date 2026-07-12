@@ -10,7 +10,6 @@ import { chunk } from './chunk.js';
 
 const INSERT_BATCH_SIZE = 500;
 
-/** Columnas devueltas en los GET (base del cruce + contacto + enriquecimiento RUES). */
 const SELECT_COLUMNS =
   'cliente_id, nombre, ciudad, subsegmento, cupo_disponible, lea_aprobado, correo, telefono, ' +
   'representante_legal_nombre, representante_legal_documento, representante_legal_cargo, ' +
@@ -54,8 +53,6 @@ export class SupabaseClientesFinalesRepository implements ClientesFinalesReposit
       );
     }
 
-    // Tabla derivada: cada regeneración parte del cruce y limpia el enriquecimiento
-    // RUES (se vuelve a poblar con POST /enrich-rues).
     const rows = clientes.map((cliente) => ({
       cliente_id: cliente.clienteId,
       nombre: cliente.nombre,

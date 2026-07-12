@@ -33,13 +33,11 @@ export class FileMatchingController {
     private readonly pipelineCases: PipelineCaseRepository,
   ) {}
 
-  /** Ejecuta ambas validaciones del cruce; responde solo conteos (sin datos de clientes). */
   async run(_req: Request, res: Response): Promise<void> {
     const resumen = await this.buildClientesFinales.execute();
     res.json({ resumen });
   }
 
-  /** Re-consulta RUES (Croma) para todos los clientes_finales; responde solo conteos. */
   async enrichRues(req: Request, res: Response): Promise<void> {
     const body = (req.body ?? {}) as { limit?: unknown };
     const limit =
@@ -51,7 +49,6 @@ export class FileMatchingController {
     res.json({ resumen });
   }
 
-  /** Lista de la validación completa (4 condiciones). */
   async listClientesFinales(req: Request, res: Response): Promise<void> {
     const pagination = parsePagination(req);
     if (pagination) {
@@ -76,7 +73,6 @@ export class FileMatchingController {
     res.json({ total: clientes.length, clientes });
   }
 
-  /** Lista de la validación sin la condición de pagaré activo. */
   async listClientesFinalesSinPagare(req: Request, res: Response): Promise<void> {
     const pagination = parsePagination(req);
     if (pagination) {
@@ -89,7 +85,6 @@ export class FileMatchingController {
     res.json({ total: clientes.length, clientes });
   }
 
-  /** Detalle de un cliente final por identificación (NIT / cliente_id). */
   async getClienteFinalById(req: Request, res: Response): Promise<void> {
     const clienteId = String(req.params.clienteId ?? '').trim();
     if (!clienteId) {

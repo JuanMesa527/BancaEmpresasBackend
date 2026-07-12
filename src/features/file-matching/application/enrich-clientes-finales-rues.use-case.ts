@@ -6,15 +6,9 @@ import { mapWithConcurrency } from '../infrastructure/map-with-concurrency.js';
 const CONCURRENCIA = 5;
 
 export interface EnrichRuesOptions {
-  /** Tope de clientes a procesar en esta corrida. */
   limit?: number;
 }
 
-/**
- * Enriquece clientes_finales con datos de RUES (Croma) por NIT: representante
- * legal y datos de empresa para la Power App. Paso intermedio disparado por POST.
- * Consulta la fuente pequeña (clientes_finales), no la base potencial completa.
- */
 export class EnrichClientesFinalesRuesUseCase {
   private isRunning = false;
 
@@ -29,8 +23,6 @@ export class EnrichClientesFinalesRuesUseCase {
     }
     this.isRunning = true;
     try {
-      // Siempre re-consulta todos: el representante legal y demás datos del RUES
-      // cambian con el tiempo, así que /enrich-rues refresca cuando se llame.
       const clienteIds = await this.clientesFinalesRepository.findAllClienteIds(options.limit);
 
       let encontrados = 0;
@@ -47,7 +39,6 @@ export class EnrichClientesFinalesRuesUseCase {
             sinCoincidencia += 1;
           }
         } catch {
-          // Un fallo puntual (timeout, NIT problemático) no aborta el lote.
           errores += 1;
         }
       });

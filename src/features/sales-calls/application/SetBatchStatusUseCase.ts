@@ -4,7 +4,6 @@ import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
 
 export type BatchAction = 'pause' | 'resume' | 'cancel';
 
-/** Controla el ciclo de vida de una campaña: pausar / reanudar / cancelar. */
 export class SetBatchStatusUseCase {
   constructor(private readonly batchRepository: CallBatchRepository) {}
 
@@ -35,7 +34,6 @@ export class SetBatchStatusUseCase {
     }
 
     const updated = await this.batchRepository.findBatchById(batchId);
-    // El registro existe (lo acabamos de actualizar); el ! es seguro.
     return updated!;
   }
 }

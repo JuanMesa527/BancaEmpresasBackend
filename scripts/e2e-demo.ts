@@ -1,13 +1,3 @@
-/**
- * Demo E2E del feature delivery-confirmation con fakes en memoria
- * (sin Supabase ni Resend). Ejecutar: npm run demo:delivery
- *
- * Flujo probado:
- * 1. registerShipment agenda el correo a t0 + 3–4 días comprimidos.
- * 2. processDueEmails envía correo por gerente con token firmado.
- * 3. confirmDelivery con outcome de reintento reprograma a +1 día.
- * 4. Segundo correo, confirmación delivered_to_holder → pipeline avanza.
- */
 import { randomUUID } from 'node:crypto';
 import { registerShipment } from '../src/features/delivery-confirmation/application/register-shipment.js';
 import { processDueEmails } from '../src/features/delivery-confirmation/application/process-due-emails.js';
@@ -155,7 +145,6 @@ async function main() {
     frontendConfirmationUrl: 'http://localhost:4200/delivery-confirmation',
   };
 
-  // 1. Registrar envío físico
   const pipelineCaseId = randomUUID();
   const created = await registerShipment(
     {
@@ -170,33 +159,27 @@ async function main() {
   const delay = new Date(created.emailScheduledAt).getTime() - Date.now();
   assert(delay >= 2.5 * DAY_MS && delay <= 4.5 * DAY_MS, `correo agendado a 3–4 días (${delay}ms)`);
 
-  // 2. Antes de tiempo no procesa nada
   assert((await processDueEmails(deps)) === 0, 'no envía antes de la fecha agendada');
 
-  // 3. Pasan los 3–4 días comprimidos → envía a ambos gerentes
   await sleep(delay + 50);
   assert((await processDueEmails(deps)) === 1, 'procesa el caso vencido');
   assert(emailSender.sent.length === 2, 'envía un correo por gerente');
   assert(!emailSender.sent[0].isRetry, 'primer correo no es reintento');
 
-  // 4. Gerente responde "titular ausente" → reintento a +1 día
   const firstToken = new URL(emailSender.sent[0].confirmationUrl).searchParams.get('token')!;
   const retryResult = await confirmDelivery({ token: firstToken, outcome: 'holder_absent' }, deps);
   assert(retryResult.status === 'retry_scheduled', 'outcome no entregado reprograma reintento');
 
-  // 5. Token de un solo uso
   const reuse = await confirmDelivery({ token: firstToken, outcome: 'delivered_to_holder' }, deps)
     .then(() => 'accepted')
     .catch((e) => e.code as string);
   assert(reuse === 'TOKEN_ALREADY_USED', 'token no puede reutilizarse');
 
-  // 6. Pasa 1 día comprimido → reenvía correo (marcado como reintento)
   await sleep(DAY_MS + 100);
   assert((await processDueEmails(deps)) === 1, 'reenvía tras 1 día comprimido');
   assert(emailSender.sent.length === 4, 'segundo intento a ambos gerentes');
   assert(emailSender.sent[2].isRetry, 'segundo correo marcado como reintento');
 
-  // 7. Ahora sí entrega → confirmado + pipeline avanza
   const secondToken = new URL(emailSender.sent[2].confirmationUrl).searchParams.get('token')!;
   const confirmed = await confirmDelivery(
     { token: secondToken, outcome: 'delivered_to_holder' },
@@ -210,7 +193,6 @@ async function main() {
     'pipeline avanza a activation_follow_up',
   );
 
-  // 8. Estado final consultable
   const status = await getCaseStatus(pipelineCaseId, repository);
   assert(status.status === 'confirmed' && status.attemptCount === 2, 'estado final correcto');
 

@@ -48,7 +48,6 @@ const createBatchSchema = z.object({
 
 const actionSchema = z.enum(['pause', 'resume', 'cancel']);
 
-/** Endpoints de campaña (batch calling) sobre sales-calls. */
 export class BatchController {
   constructor(private readonly deps: SalesCallsDeps) {}
 
@@ -76,9 +75,6 @@ export class BatchController {
         defaultVariables: parsed.data.defaultVariables,
       });
 
-      // Kickstart: dispara la cola de inmediato (respetando el pacing) en vez de
-      // esperar al cron diario. Best-effort: si falla, los items quedan en cola
-      // para el próximo tick del dispatcher.
       try {
         await this.deps.dispatchBatches.execute();
       } catch (dispatchError) {

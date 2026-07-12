@@ -5,7 +5,6 @@ function normalizeId(value: string): string {
   return value.replace(/[.\-\s]/g, '').trim();
 }
 
-/** NIT empresarial: RUES usa 9 dígitos; el formulario puede traer el dígito de verificación (10). Solo cruce interno. */
 function nitBaseForRuesMatch(value: string): string {
   const digits = value.replace(/\D/g, '');
   if (!digits) return '';

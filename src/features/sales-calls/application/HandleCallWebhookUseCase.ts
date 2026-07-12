@@ -5,7 +5,6 @@ import type { CallRepository } from '../domain/CallRepository.js';
 import type { CallBatchRepository } from '../domain/CallBatchRepository.js';
 import { isCallQualified } from '../domain/qualification.js';
 
-// Esquemas según docs.fonema.ai/api/webhook/*
 
 export interface CallUpdatePayload {
   event?: string;
@@ -47,19 +46,11 @@ export interface EndOfSessionPayload {
 export class HandleCallWebhookUseCase {
   constructor(
     private readonly callRepository: CallRepository,
-    // Opcional: si el call pertenece a una campaña, se sincroniza su item.
-    // Ausente en configuraciones sin batch (p. ej. seed/demo in-memory).
     private readonly batchRepository?: CallBatchRepository,
-    // Opcional: avanza el caso a power_apps cuando la llamada califica.
-    // Ausente en seed/demo sin pipeline durable.
     private readonly pipeline?: PipelineStageAdvancer,
-    // Opcional: resuelve el caso del pipeline por NIT cuando la llamada llega
-    // sin `caseId` correlacionado (disparada desde el dashboard de Fonema, POST
-    // manual, o sin contexto de pipeline en el front).
     private readonly pipelineCases?: PipelineCaseRepository,
   ) {}
 
-  // Webhook "actualizaciones-de-llamada": cambios de estado en tiempo real.
   async handleCallUpdate(payload: CallUpdatePayload): Promise<void> {
     const callId = payload.call?.id;
     if (!callId) {
@@ -68,8 +59,6 @@ export class HandleCallWebhookUseCase {
 
     const call = await this.callRepository.findByFonemaCallId(callId);
     if (!call) {
-      // Aún no conocemos esta llamada por su id (solo tenemos el sessionId
-      // hasta que llega fin-de-llamada). Se ignora sin fallar.
       return;
     }
 
@@ -77,7 +66,6 @@ export class HandleCallWebhookUseCase {
     call.updatedAt = new Date().toISOString();
     await this.callRepository.save(call);
 
-    // Refleja "en progreso" en el item de campaña (ambos estados cuentan como activos).
     if (call.status === 'in_progress' && this.batchRepository && call.sessionId) {
       const item = await this.batchRepository.findItemBySessionId(call.sessionId);
       if (item && item.status === 'dialing') {
@@ -86,7 +74,6 @@ export class HandleCallWebhookUseCase {
     }
   }
 
-  // Webhook "fin-de-llamada": trae grabación, transcript y análisis.
   async handleEndOfCall(payload: EndOfCallPayload): Promise<void> {
     const sessionId = payload.session?.id;
     if (!sessionId) {
@@ -106,8 +93,6 @@ export class HandleCallWebhookUseCase {
     call.endedReason = payload.endedReason ?? call.endedReason;
     call.startedAt = payload.startedAt ?? call.startedAt;
     call.durationSeconds = payload.durationSeconds ?? call.durationSeconds;
-    // Variables de salida: lo que el agente recolectó/actualizó en la llamada.
-    // Se acumulan (merge) para no perder claves de eventos previos.
     if (payload.variableValues) {
       call.outputVariables = { ...call.outputVariables, ...payload.variableValues };
     }
@@ -121,20 +106,6 @@ export class HandleCallWebhookUseCase {
     await this.advancePipelineIfQualified(call);
   }
 
-  /**
-   * Handoff automático a la Power App: si la llamada cerró CALIFICADA (identidad
-   * verificada + interesado), avanza pipeline_cases.stage -> 'power_apps' sin
-   * intervención manual. El front ya puede consumir GET /calls/{id}/handoff para
-   * pre-diligenciar la solicitud.
-   *
-   * El caso se resuelve por el `caseId` correlacionado y, si la llamada no lo trae
-   * (disparada desde el dashboard de Fonema, POST manual, o sin contexto de
-   * pipeline en el front), por el NIT del lead (`variables.nit`). Sin esta segunda
-   * vía, una llamada exitosa sin `caseId` dejaba el caso clavado en su etapa.
-   *
-   * Best-effort: un fallo aquí (o un caso ya avanzado, que el advancer rechaza por
-   * no retroceder) no debe romper el webhook — la grabación/resultado ya se guardó.
-   */
   private async advancePipelineIfQualified(call: Call): Promise<void> {
     if (!this.pipeline) return;
     if (!isCallQualified(call)) return;
@@ -149,7 +120,6 @@ export class HandleCallWebhookUseCase {
     }
   }
 
-  /** Caso correlacionado por `caseId`; si falta, se resuelve por el NIT del lead. */
   private async resolveCaseId(call: Call): Promise<string | undefined> {
     if (call.caseId) return call.caseId;
 
@@ -160,11 +130,6 @@ export class HandleCallWebhookUseCase {
     return pipelineCase.id;
   }
 
-  // Webhook "fin-de-sesion": se agotaron los reintentos hacia el cliente.
-  // Fonema NO envía session.id ni call.id (solo el teléfono), así que se
-  // correlaciona con la última llamada a ese número. Trae datos de cierre que
-  // el fin-de-llamada no tiene (totalAttempts) y el estado final de variables
-  // de salida / análisis; se persiste todo para poder consumirlo después.
   async handleEndOfSession(payload: EndOfSessionPayload): Promise<void> {
     const phoneNumber = payload.customer?.phoneNumber;
     if (!phoneNumber) {
@@ -188,11 +153,6 @@ export class HandleCallWebhookUseCase {
     await this.callRepository.save(call);
   }
 
-  /**
-   * Si la llamada pertenece a una campaña, sincroniza su item: estado terminal,
-   * bandera `qualified` (para el handoff a power-apps) y fin. Correlaciona por
-   * sessionId (fijado al despachar) y, en su defecto, por callId.
-   */
   private async syncBatchItem(call: Call, terminal: 'completed' | 'failed'): Promise<void> {
     if (!this.batchRepository) return;
 

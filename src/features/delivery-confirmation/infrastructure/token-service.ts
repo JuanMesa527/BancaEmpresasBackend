@@ -7,14 +7,9 @@ interface TokenPayload {
   exp: number;
 }
 
-/**
- * Token firmado HMAC-SHA256: base64url(payload).base64url(signature).
- * No es un JWT completo a propósito: un solo emisor/consumidor, sin header.
- */
 export class HmacConfirmationTokenService implements ConfirmationTokenService {
   constructor(
     private readonly secret: string,
-    /** Vida útil del token en ms (default 30 días reales, sobra para la demo). */
     private readonly ttlMs: number = 30 * 24 * 60 * 60 * 1000,
   ) {
     if (!secret) {
